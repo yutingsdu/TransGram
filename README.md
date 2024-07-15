@@ -9,6 +9,7 @@ Prerequisites
 ================
 
   g++ with support for C++11 (e.g. 4.7.2)
+  [xgboost][xgboost] https://github.com/dmlc/xgboost
  
 
 # 1. Installing and test
@@ -20,9 +21,9 @@ Prerequisites
           $ cd TransGram
           $ make release
           
-    (C) Test TransGram on the demo data set.
+    (B) Test TransGram on the demo data set.
         
-        Change to GeLuster/sample_test/, and type the following command:
+        Change to TransGram/sample_test/, and type the following command:
         
           $ ./run_me.sh
           
@@ -43,7 +44,7 @@ Prerequisites
 
     ** Options **
     
-    --help/-h			  : Output GeLuster Help Information.
+    --help/-h			  : Output TransGram Help Information.
 
     --version/-v			  : Print current version of TransGram.
 
@@ -53,19 +54,19 @@ Prerequisites
     
     A typical TransGram command might be:
 
-    GeLuster -b file.bam -o transgram_outdir
+    TransGram -b file.bam -o transgram_outdir
 
 ---------------------------------------------------------------------------
 
 ===========================================================================
 
 
-Authors: Ting Yu and Zitong Ren designed and wrote GeLuster.
+Authors: Ting Yu and Zitong Ren designed and wrote TransGram.
  
 Contact:
  
 Any questions, problems, bugs are welcome and should be dumped to Ting Yu <yutingsdu@163.com>
  
 Created on July 15, 2024.
-
+[xgboost]: https://github.com/dmlc/xgboost
  
