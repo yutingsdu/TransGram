@@ -10,13 +10,13 @@ Prerequisites
 
   g++ with support for C++11 (e.g. 4.7.2)
   
-  [xgboost][xgboost] https://github.com/dmlc/xgboost
+  Please ensure that [xgboost][xgboost] is properly installed!!!!
  
 
 # 1. Installing and test
 ===========================================================================
     
-    Please ensure that xgboost are properly installed.
+  
    
     (A) Download the lastest version of TransGram and make.
     
