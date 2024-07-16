@@ -32,7 +32,7 @@ Prerequisites
         
           $ ./run_me.sh
           
-        If you get the ** congrats, you succesfully installed TransGram.
+        If you get the transgram_outdir/TransGram.gtf, congrats, you succesfully installed TransGram.
       
         
 ===========================================================================
