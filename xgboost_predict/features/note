@@ -1,0 +1,5 @@
+SIM-2: assemble_gtf=../ST_TG.gtf
+SIM-3: ST_L_and_noL_TG_iso.gtf
+SIM_5m_8.csv:/home/yuting/yuting/Software/lrgasp-simulation/MySimulation_new_5M_8/simulated/xGboost
+ cat SIM_5m_8.csv SIM-2.csv >SIM-new.csv
+
