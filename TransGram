@@ -18,7 +18,7 @@ usage()
 cat << EOT
 ===========================================================================
 
-TransGram-v.1.0 usage:
+TransGram-v.0.0 usage:
 
 ** Required **
 
@@ -29,7 +29,7 @@ TransGram-v.1.0 usage:
 
 ** Options **
 
---help/-h			: Output Tiglon Help Information
+--help/-h			: Output TransGram Help Information
 
 --version/-v			: Print current version of TransGram
 
@@ -66,7 +66,7 @@ eval set -- "$RET"
 while true; do
     case "$1" in
         -h | --help ) usage; exit 1;;
-        -v | --version ) echo "** The current version of TransGram is v.1.1 **"; exit 1;;
+        -v | --version ) echo "** The current version of TransGram is v.0.0 **"; exit 1;;
         -o | --output_dir) output_dir=$2     
 			shift 2 ;;
         -b | --bam) 	   BamFile=$2 
@@ -146,16 +146,23 @@ Run(){
 #################################################################
 
 #building graph
+MyDate=$(date "+%d/%m/%Y %T")
+echo "[$MyDate] Building graph..."
+
 echo $shellpath/transgram-graph $BamFile -L -o $output_dir >$output_dir/command
 echo $shellpath/transgram-graph  $BamFile -o $output_dir >>$output_dir/command
 Run $output_dir/command
 
 
 #searching paths
+MyDate=$(date "+%d/%m/%Y %T")
+echo "[$MyDate] Searching paths..."
 $shellpath/transgram-path-search $output_dir/transgram.reads.raw.align $output_dir/transgram.graph alpha $output_dir
 datatype=$(tail -n 1 $output_dir/data.info)
 
 #xgboost prediction
+MyDate=$(date "+%d/%m/%Y %T")
+echo "[$MyDate] Filtering..."
 $shellpath/transgram-trans2pathsinfo $output_dir/transgram-temp.gtf $output_dir/transgram.graph $output_dir/gtf2path.info
 if [ $datatype == "alpha" ]; then
 	TraningData=$shellpath/xgboost_predict/features/NM_R1.csv
@@ -170,6 +177,10 @@ fi
 
 #filtering
 assemble_gtf=$output_dir/transgram-temp.gtf
-$shellpath/transgram-filter xgboost_predict_pro.txt $assemble_gtf $output_dir/TransGram.gtf 0.15 transgram
+if [ -s xgboost_predict_pro.txt ]; then
+	$shellpath/transgram-filter xgboost_predict_pro.txt $assemble_gtf $output_dir/TransGram.gtf 0.15 transgram
+	MyDate=$(date "+%d/%m/%Y %T")
+	echo "[$MyDate] Done!"
+fi
 
 
