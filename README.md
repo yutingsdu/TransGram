@@ -2,7 +2,7 @@
 Description
 ================
 
-TransGram is a genome-guided transcriptome reconstructing tool for long RNA-seq reads.
+TransGram is a genome-guided transcriptome reconstruction tool for long RNA-seq reads.
 
 
 Prerequisites
