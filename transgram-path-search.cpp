@@ -90,7 +90,7 @@ void get_graph_info(vector<Node> & node_set,string chr, string strand)
 */
 void load_graph_and_assemble(char* file,bool dt_data_type_flag) //dt_data_type_flag: true for determine data type
 {
-    cerr<<"Loading graph "<<file<<endl;
+    if(!dt_data_type_flag)cerr<<"Loading graph "<<file<<endl;
     ifstream in(file);
     istringstream istr;
     string s,temp;

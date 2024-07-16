@@ -100,7 +100,10 @@ int main(int argc,char* argv[])
 	istr.clear();
 	id = id.substr(1,id.length() - 3);
 
-	if(trans_count_map.find(id) == trans_count_map.end()) cerr<<"WARRNING: "<<id<<endl;
+	if(trans_count_map.find(id) == trans_count_map.end()) {
+
+		//cerr<<"WARRNING: "<<id<<endl;
+	}
 	else
 	{
 	   if(trans_count_map[id] > filter_cov)
