@@ -1,11 +1,11 @@
 #!/bin/bash
 shellpath=`dirname $0`
-output_dir=tiglon_outdir
+output_dir=transgram_outdir
 left=read_1.fastq
 right=read_2.fastq
 single=Mysingle.fastq
 BamFile="No_input"
-output_dir=tiglon_outdir
+output_dir=transgram_outdir
 thread=2
 MinAverageCov=0.03 #--min-average-junc-ratio 
 MinUnbalanceCov=0.03 #--min-unbalance-ratio
