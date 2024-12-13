@@ -21,21 +21,26 @@ An illustration of installing the used tools.
 ================
 
 Installing xgboost
-          $ pip install xgboost
+    
+    $ pip install xgboost
 
 Installing StringTie2
-          $ wget https://github.com/gpertea/stringtie/releases/download/v2.2.1/stringtie-2.2.1.Linux_x86_64.tar.gz
-          $ tar xvfz ~/Downloads/stringtie-2.2.1.Linux_x86_64.tar.gz
+
+    $ wget https://github.com/gpertea/stringtie/releases/download/v2.2.1/stringtie-2.2.1.Linux_x86_64.tar.gz
+    $ tar xvfz ~/Downloads/stringtie-2.2.1.Linux_x86_64.tar.gz
 
 Installing cufflinks
-          $ wget http://cole-trapnell-lab.github.io/cufflinks/assets/downloads/cufflinks-2.2.1.Linux_x86_64.tar.gz
-          $ tar zxvf ~/Downloads/cufflinks-2.2.1.Linux_x86_64.tar.gz
+
+    $ wget http://cole-trapnell-lab.github.io/cufflinks/assets/downloads/cufflinks-2.2.1.Linux_x86_64.tar.gz
+    $ tar zxvf ~/Downloads/cufflinks-2.2.1.Linux_x86_64.tar.gz
 
 Installing TransGram.
-          $ git clone https://github.com/yutingsdu/TransGram
-          $ cd TransGram
-          $ make release
 
+    $ git clone https://github.com/yutingsdu/TransGram
+    $ cd TransGram
+    $ make release
+    
+===========================================================================
 Please don't forget to set the  Set the enviroment variable for StringTie2 and cufflinks.
 
 OR
@@ -44,17 +49,19 @@ Type the command
 	export PATH=your-path/stringtie:$PATH
 	export PATH=your-path/cufflinks:$PATH
 befor running, and /your-path is the directory where StringTie2 and cufflinks installed
+===========================================================================
 
 An example for training a new model
 ================
-	./train_model -b sample1.bam -a annotations.gtf
 
-	If everything goes well, you will see a directory "transgram_new_model"
+  ./train_model -b sample1.bam -a annotations.gtf
+
+  If everything goes well, you will see a directory "transgram_new_model"
 
 Runing TransGram with the new model
 ================
 
-	TransGram -b alignment.bam --ont -o transgram-outdir --CusModel transgram_new_model
+  TransGram -b alignment.bam --ont -o transgram-outdir --CusModel transgram_new_model
 
 [xgboost]: https://github.com/dmlc/xgboost
 [TransGram]: https://github.com/yutingsdu/TransGram
