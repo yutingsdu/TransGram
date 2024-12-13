@@ -80,7 +80,7 @@ A typical TransGram command for ONT data might be:
 
 If you choose to run TransGram with a customized model for filteringt the discovered transcripts, please refer to [training][training].
 
-
+---------------------------------------------------------------------------
 
 Authors: Ting Yu and Zitong Ren designed and wrote TransGram.<br>
 Contact:<br>
