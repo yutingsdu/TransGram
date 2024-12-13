@@ -24,7 +24,7 @@ Prerequisites
     
           $ git clone https://github.com/yutingsdu/TransGram 
           $ cd TransGram
-          $ make release
+          $ make all release
           
     (C) Test TransGram on the demo data set.
         
