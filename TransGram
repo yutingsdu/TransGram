@@ -167,20 +167,20 @@ if [ $assembledGTF != "NoInput" ]; then
 	if [ $datatype == "alpha" ]; then
 		TraningData=$shellpath/xgboost_predict/features/alpha.model.csv
 		if [ $CustomizedModel != "NULL" ]; then
-			TraningData=$CustomizedModel
+			TraningData=$CustomizedModel/23_features.csv
 		fi
 		python $shellpath/xgboost_predict/xgboost_model_predict.py -i $TraningData -g $output_dir/gtf2path.info -o $output_dir
 	elif [ $datasource == "pacbio" ]; then
-		if [ $CustomizedModel != "NULL" ]; then
-                        TraningData=$CustomizedModel
-                fi
 		TraningData=$shellpath/xgboost_predict/features/beta-pac.model.csv
+		if [ $CustomizedModel != "NULL" ]; then
+                        TraningData=$CustomizedModel/23_features.csv
+                fi
 		python $shellpath/xgboost_predict/xgboost_model_predict.py -i $TraningData -g $output_dir/gtf2path.info -o $output_dir
 	elif [ $datasource == "ont" ]; then
-		if [ $CustomizedModel != "NULL" ]; then
-                        TraningData=$CustomizedModel
-                fi
 		TraningData=$shellpath/xgboost_predict/features/beta-ont.model.csv
+		if [ $CustomizedModel != "NULL" ]; then
+                        TraningData=$CustomizedModel/23_features.csv
+                fi
 		python $shellpath/xgboost_predict/xgboost_model_predict.py -i $TraningData -g $output_dir/gtf2path.info -o $output_dir
 	fi
 
@@ -217,19 +217,19 @@ $shellpath/transgram-trans2pathsinfo $output_dir/transgram-temp.gtf $output_dir/
 if [ $datatype == "alpha" ]; then
 	TraningData=$shellpath/xgboost_predict/features/alpha.model.csv
 	if [ $CustomizedModel != "NULL" ]; then
-                        TraningData=$CustomizedModel
+                        TraningData=$CustomizedModel/23_features.csv
 	fi
 	python $shellpath/xgboost_predict/xgboost_model_predict.py -i $TraningData -g $output_dir/gtf2path.info -o $output_dir
 elif [ $datasource == "pacbio" ]; then
 	TraningData=$shellpath/xgboost_predict/features/beta-pac.model.csv
 	if [ $CustomizedModel != "NULL" ]; then
-                        TraningData=$CustomizedModel
+                        TraningData=$CustomizedModel/23_features.csv
         fi
 	python $shellpath/xgboost_predict/xgboost_model_predict.py -i $TraningData -g $output_dir/gtf2path.info -o $output_dir
 elif [ $datasource == "ont" ]; then
 	TraningData=$shellpath/xgboost_predict/features/beta-ont.model.csv
 	if [ $CustomizedModel != "NULL" ]; then
-                        TraningData=$CustomizedModel
+                        TraningData=$CustomizedModel/23_features.csv
         fi
 	python $shellpath/xgboost_predict/xgboost_model_predict.py -i $TraningData -g $output_dir/gtf2path.info -o $output_dir
 fi
