@@ -84,7 +84,7 @@ If you choose to run TransGram with a customized model for filteringt the discov
 ===========================================================================
 
 
-Authors: Ting Yu and Zitong Ren designed and wrote TransGram. 
+Authors: Ting Yu and Zitong Ren designed and wrote TransGram. \n
 Contact:
 Any questions, problems, bugs are welcome and should be dumped to Ting Yu <yutingsdu@163.com>
 Updated on Dec 13, 2024.
