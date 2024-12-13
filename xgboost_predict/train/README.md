@@ -39,29 +39,31 @@ Installing TransGram.
     $ git clone https://github.com/yutingsdu/TransGram
     $ cd TransGram
     $ make release
-    
-===========================================================================
+
+
 Please don't forget to set the  Set the enviroment variable for StringTie2 and cufflinks.
 
 OR
 
 Type the command 
-	export PATH=your-path/stringtie:$PATH
-	export PATH=your-path/cufflinks:$PATH
-befor running, and /your-path is the directory where StringTie2 and cufflinks installed
-===========================================================================
+export PATH=your-path/stringtie:$PATH
+export PATH=your-path/cufflinks:$PATH
+befor running, and /your-path/ is the directory where StringTie2 and cufflinks installed
+
+
+
 
 An example for training a new model
 ================
-
-  ./train_model -b sample1.bam -a annotations.gtf
-
-  If everything goes well, you will see a directory "transgram_new_model"
+    
+    train_model -b sample1.bam -a annotations.gtf
+    
+    If everything goes well, you will see a directory "transgram_new_model"
 
 Runing TransGram with the new model
 ================
-
-  TransGram -b alignment.bam --ont -o transgram-outdir --CusModel transgram_new_model
+    
+    TransGram -b alignment.bam --ont -o transgram-outdir --CusModel transgram_new_model
 
 [xgboost]: https://github.com/dmlc/xgboost
 [TransGram]: https://github.com/yutingsdu/TransGram
