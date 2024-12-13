@@ -201,9 +201,11 @@ int main(int argc, char* argv[]) {
  //args.printError(USAGE, true);
 
  processOptions(args);
- 
- outfname=out_dir+"/transgram.reads.raw.align";
- f_out=fopen(outfname.chars(), "w");
+ if(!longreads)
+ {
+   outfname=out_dir+"/transgram.reads.raw.align";
+   f_out=fopen(outfname.chars(), "w");
+ }
 
  GStr graph_file = out_dir+"/transgram.graph";
  out.open(graph_file.chars());
@@ -699,7 +701,7 @@ if (ballgown)
 		  refpts[i].pfs.setFreeItem(true);
 	  }
 
- fclose(f_out);
+ if(!longreads) fclose(f_out);
  if (c_out && c_out!=stdout) fclose(c_out);
 
  if(verbose && no_xs>0)

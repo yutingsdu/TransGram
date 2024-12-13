@@ -14,29 +14,21 @@ using namespace std;
 extern map<string, map<pair<int,int>,bool> > Chr_Junc_map;
 extern map<string, vector<vector<int> > > Chr_Trans_map;
 typedef map<string, map<pair<int,int>,bool> >::iterator Chr_Junc_map_iter;
+
 extern double SampleSize;
-extern bool unstranded;
 extern double SEED_Filter;
-extern string mode;//R|I|U  reference/ipac/combine
-extern int pack_graph_num;
-extern int unpack_graph_num;
-extern bool PackingFlag;
-extern bool MyFlag;
 extern double AVERAGE_REMOVE_RATE;
 extern double UNBALANCE_RATE ;
-extern bool SFlag;
 extern int rg_index;
 extern int trans_id;
-extern string out_name;
 extern ofstream out_gtf;
 extern ofstream out_info;
 extern ofstream out_graph;
-extern vector< vector<int> > AllTrans;
-extern vector< pair<string,string> > AllTransChr;
 extern vector< pair<int,int> > datatype_info;//edges; edges_NotInLRP;
 extern bool GFlag_;
 
-typedef vector<int> triple_t;
+
+extern int min_trans_length;
 void SimplifyGraph::get_graph_info()
 {
     /*
@@ -742,31 +734,6 @@ return;
 
   void SimplifyGraph::get_CovInfo()
   {
-    //cout<<"Info: "<<Graph_size<<" ";
-    int good=0,bad=0;
-    for(int i=0;i<Graph_size;i++)
-    {
-	double Ccov=0,Pcov=0;
-	if(node_set[i].children.size()>0 && node_set[i].parents.size()>0)
-	{
-	    if(node_set[i].children.size()>1 || node_set[i].parents.size()>1)
-	    {
-		for(size_t j=0;j<node_set[i].children.size();j++) Ccov += node_set[i].children[j].second;
-		for(size_t j=0;j<node_set[i].parents.size();j++) Pcov += node_set[i].parents[j].second;
-		double min = Ccov<Pcov?Ccov:Pcov;
-		double max = Ccov<Pcov?Pcov:Ccov;
-		double rate = min/max;
-		//cout<<rate<<" ";
-		if(rate>0.7) good++;
-		else bad++;
-	    }
-	}
-    }
-    //cout<<"; "<<good<<"/"<<bad;
-    //cout<<endl;
-    if(good > 5*bad) PackingFlag = true;
-    if(PackingFlag) pack_graph_num++;
-    else unpack_graph_num++;
   }
   node_idx_t SimplifyGraph::find_partial(node_idx_t n, bool downstream)
   {
@@ -978,14 +945,6 @@ return;
 	node_set.push_back(node);
 	nodes.push_back(make_pair(exon_l[i],exon_r[i]));
     }
-    /*
-    out_info<<"****"<<endl;
-    for(size_t i=0;i<nodes.size();i++)
-    {
-        out_info<<"*"<<nodes[i].first<<" "<<nodes[i].second<<endl;
-    }
-    out_info<<"****"<<endl;
-    */
     //sink
     if(SSFlag)
     {
@@ -1033,10 +992,10 @@ return;
     //show_junction();
     //
     vector<edge_t> delete_edges_child,delete_edges_parent;
-    //remove_partial_junction(delete_edges_child,delete_edges_parent);
+        //remove_partial_junction(delete_edges_child,delete_edges_parent);
     remove_intron_contamination(delete_edges_child,delete_edges_parent);
-    //remove_partial_end_by_edge_coverage(delete_edges_child,delete_edges_parent);
-    AVERAGE_REMOVE_RATE = 0.001;
+        //remove_partial_end_by_edge_coverage(delete_edges_child,delete_edges_parent);
+    //AVERAGE_REMOVE_RATE = 0.001;
     remove_edges_by_average_coverage(delete_edges_child,delete_edges_parent);
     
     //remove_lowcov_edges_of_bifurcation_nodes(delete_edges_child,delete_edges_parent);
@@ -1046,20 +1005,16 @@ return;
     
     process_LRP_after_simplify_graph(); 
     
-    //get_LRP();
-    if(dt_data_type)
+    if(dt_data_type) //dertimine data type here;
     {
 	get_LRP();
 	path_search(strand,chr,true);
-	//dertimine data type here;
         return;
     } 
     if(GFlag)
     {
 	get_LRP();
 	path_search(strand,chr,false);
-	//for(size_t i=0;i<final_paths_extended.size();i++)
-	//	final_paths.push_back(final_paths_extended[i]);
         output(strand,chr,final_paths);
     }
     else //else if(1)
@@ -1652,7 +1607,6 @@ return;
     double COV1 = 3.0;
     double R = 0.2;
     double COV2 = 5.0;
-    //if(PackingFlag) R = 0.1;
     for(int i=0;i<Graph_size;i++)
     {
 	//cerr<<"node: "<<i<<endl;
@@ -2372,7 +2326,7 @@ return;
 	//break;
 	
     }
-    double seed_filter = 2;
+    double seed_filter = SEED_Filter;
     int path_number = 0;
     while(1 && !unused_junctions.empty())//junction as seed
     {
@@ -2532,7 +2486,7 @@ return;
 	}
 
 
-	if( length>200 )
+	if( length>min_trans_length )//default: 200
 	{
 
 	  string flag_ = "xP";
@@ -2565,7 +2519,7 @@ return;
 	  }
 */
 
-      	  out_gtf<<chr<<"	"<<"NewASSEMBLER"<<"	"
+      	  out_gtf<<chr<<"	"<<"TRANSGRAM"<<"	"
 	      	<<"transcript"<<"	"<<node_set[p.front()].sequence.front()<<"	"<<node_set[p.back()].sequence.back()<<"	"
 	      	<<1000<<"	"<<strand<<"	"
 	      	<<".	gene_id "<<"\""<<chr<<"."<<rg_index<<"\""<<"; "
@@ -2576,7 +2530,7 @@ return;
 
       	  for(size_t j=0;j<p.size();j++)
 	  {
-             out_gtf<<chr<<"	"<<"NewASSEMBLER"<<"	"
+             out_gtf<<chr<<"	"<<"TRANSGRAM"<<"	"
 		    <<"exon"<<"	"<<node_set[p[j]].sequence.front()<<"	"<<node_set[p[j]].sequence.back()<<"	"
 		    <<1000<<"	"<<strand<<"	"
 		    <<".	gene_id "<<"\""<<chr<<"."<<rg_index<<"\""<<"; "
