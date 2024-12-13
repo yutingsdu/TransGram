@@ -75,6 +75,9 @@ TransGram-v.0.0 usage:
 A typical TransGram command for ONT data might be:
 
     TransGram -b alignment.bam --ont -o transgram_outdir
+    
+    
+If you choose to run TransGram with a customized model for filteringt the discovered transcripts, please refer to [][train].
 
 ===========================================================================
 
@@ -88,4 +91,5 @@ Any questions, problems, bugs are welcome and should be dumped to Ting Yu <yutin
 Created on July 15, 2024.
 
 [xgboost]: https://github.com/dmlc/xgboost
+[train]: https://github.com/yutingsdu/TransGram/tree/main/xgboost_predict/train
  
