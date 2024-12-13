@@ -41,16 +41,14 @@ Installing TransGram.
     $ make release
 
 
-Please don't forget to set the  Set the enviroment variable for StringTie2 and cufflinks.
+Please don't forget to set the enviroment variable for StringTie2 and cufflinks.
 
 OR
 
 Type the command 
 
 export PATH=your-path/stringtie:$PATH
-
 export PATH=your-path/cufflinks:$PATH
-
 befor running, and /your-path/ is the directory where StringTie2 and cufflinks installed
 
 
