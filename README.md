@@ -35,7 +35,6 @@ Prerequisites
         If you get the transgram_outdir/TransGram.gtf, congrats, you succesfully installed TransGram.
       
         
-===========================================================================
 
 # 2. Usage 
 
@@ -81,11 +80,9 @@ A typical TransGram command for ONT data might be:
 
 If you choose to run TransGram with a customized model for filteringt the discovered transcripts, please refer to [training][training].
 
-===========================================================================
 
 
-Authors: Ting Yu and Zitong Ren designed and wrote TransGram.
-
+Authors: Ting Yu and Zitong Ren designed and wrote TransGram.<br>
 Contact:<br>
 Any questions, problems, bugs are welcome and should be dumped to Ting Yu <yutingsdu@163.com> <br>
 Updated on Dec 13, 2024. <br>
