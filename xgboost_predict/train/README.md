@@ -2,6 +2,7 @@ Description
 ================
 
 TransGram is a genome-guided transcriptome reconstruction tool for long RNA-seq reads.
+
 This is a function of TransGram: You can train a new filtering model with your sample.
 In situations where the default model you though is not suitable for the sample, TransGram provides a function to train a new model. 
 To ensure that the trained model captures data features effectively, the data used for training should be well annotated.The new model 
@@ -56,14 +57,14 @@ befor running, and /your-path/ is the directory where StringTie2 and cufflinks i
 
 
 
-An example for training a new model
+An example for training a new model.
 ================
     
     train_model -b sample1.bam -a annotations.gtf
     
     If everything goes well, you will see a directory "transgram_new_model"
 
-Runing TransGram with the new model
+Runing TransGram with the new model.
 ================
     
     TransGram -b alignment.bam --ont -o transgram-outdir --CusModel transgram_new_model
