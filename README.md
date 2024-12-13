@@ -14,7 +14,7 @@ Prerequisites
  
 
 # 1. Installing and test
-===========================================================================
+
     
     (A) Installing xgboost 
     
@@ -38,7 +38,7 @@ Prerequisites
 ===========================================================================
 
 # 2. Usage 
-===========================================================================
+
 
 TransGram-v.0.0 usage:
 
@@ -77,7 +77,7 @@ A typical TransGram command for ONT data might be:
     TransGram -b alignment.bam --ont -o transgram_outdir
 
 # 3. Running TransGram with a  customized model
-===========================================================================
+
 
 If you choose to run TransGram with a customized model for filteringt the discovered transcripts, please refer to [training][training].
 
