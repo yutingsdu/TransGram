@@ -84,10 +84,11 @@ If you choose to run TransGram with a customized model for filteringt the discov
 ===========================================================================
 
 
-Authors: Ting Yu and Zitong Ren designed and wrote TransGram. \n
-Contact:
-Any questions, problems, bugs are welcome and should be dumped to Ting Yu <yutingsdu@163.com>
-Updated on Dec 13, 2024.
+Authors: Ting Yu and Zitong Ren designed and wrote TransGram.
+
+Contact:<br>
+Any questions, problems, bugs are welcome and should be dumped to Ting Yu <yutingsdu@163.com> <br>
+Updated on Dec 13, 2024. <br>
 
 [xgboost]: https://github.com/dmlc/xgboost
 [training]: https://github.com/yutingsdu/TransGram/tree/main/xgboost_predict/train
