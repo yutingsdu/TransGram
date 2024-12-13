@@ -46,8 +46,11 @@ Please don't forget to set the  Set the enviroment variable for StringTie2 and c
 OR
 
 Type the command 
+
 export PATH=your-path/stringtie:$PATH
+
 export PATH=your-path/cufflinks:$PATH
+
 befor running, and /your-path/ is the directory where StringTie2 and cufflinks installed
 
 
