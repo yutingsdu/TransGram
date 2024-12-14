@@ -52,7 +52,7 @@ export PATH=your-path/stringtie:$PATH
 
 export PATH=your-path/cufflinks:$PATH
 
-befor running, and /your-path/ is the directory where StringTie2 and cufflinks installed.
+before running, and /your-path/ is the directory where StringTie2 and cufflinks installed.
 
 
 
