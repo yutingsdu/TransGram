@@ -255,7 +255,7 @@ def get_label(match):
                 one_path_features.append(path_node_weigth_max)
                 one_path_features.append(path_node_weigth_min)
                 one_path_features.append(path_node_weigth_average)
-                one_path_features.append(path_node_weigth_average)
+                one_path_features.append(path_node_weigth_var)
 
                 one_path_features.append(branch_point_num)
                 result.append((id,one_path_features))
