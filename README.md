@@ -8,7 +8,7 @@ TransGram is a genome-guided transcriptome reconstruction tool for long RNA-seq 
 Prerequisites
 ================
 
-  g++ with support for C++11 (e.g. 4.7.2)
+  g++ with support for C++11 (e.g. 9.4.0)
   
   Please ensure that [xgboost][xgboost] is properly installed !
  
