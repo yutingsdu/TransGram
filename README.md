@@ -26,7 +26,7 @@ Prerequisites
           $ cd TransGram
           $ make all release
           
-	Completing the installation procedure will require a few minutes. 
+	  Completing the installation procedure will require a few minutes. 
 	  
     (C) Test TransGram on the demo data set.
         
