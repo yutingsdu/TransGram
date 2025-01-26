@@ -26,13 +26,15 @@ Prerequisites
           $ cd TransGram
           $ make all release
           
+	  Completing the installation procedure will require a few minutes. 
+	  
     (C) Test TransGram on the demo data set.
         
         Change to TransGram/sample_test/, and type the following command:
         
           $ ./run_me.sh
           
-        If you get the transgram_outdir/TransGram.gtf, congrats, you succesfully installed TransGram.
+	If you get the transgram_outdir/TransGram.gtf, congrats, you succesfully installed TransGram.
       
         
 
