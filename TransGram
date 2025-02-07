@@ -163,7 +163,7 @@ if [ $assembledGTF != "NoInput" ]; then
 	$shellpath/transgram-graph $BamFile -L -o $output_dir
 	$shellpath/transgram-trans2pathsinfo $assembledGTF $output_dir/transgram.graph $output_dir/gtf2path.info
 	$shellpath/transgram-path-search -g $output_dir/transgram.graph -o $output_dir --only-determine-dataType
-
+	datatype=$(tail -n 1 $output_dir/data.info)
 	if [ $datatype == "alpha" ]; then
 		TraningData=$shellpath/xgboost_predict/features/alpha.model.csv
 		if [ $CustomizedModel != "NULL" ]; then

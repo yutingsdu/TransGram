@@ -8,7 +8,7 @@ TransGram is a genome-guided transcriptome reconstruction tool for long RNA-seq 
 Prerequisites
 ================
 
-  g++ with support for C++11 (e.g. 4.7.2)
+  g++ with support for C++11 (e.g. 9.4.0)
   
   Please ensure that [xgboost][xgboost] is properly installed !
  
@@ -26,13 +26,15 @@ Prerequisites
           $ cd TransGram
           $ make all release
           
+	      Completing the installation procedure will require a few minutes. 
+	  
     (C) Test TransGram on the demo data set.
         
         Change to TransGram/sample_test/, and type the following command:
         
           $ ./run_me.sh
           
-        If you get the transgram_outdir/TransGram.gtf, congrats, you succesfully installed TransGram.
+	If you get the transgram_outdir/TransGram.gtf, congrats, you succesfully installed TransGram.
       
         
 
