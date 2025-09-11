@@ -151,11 +151,11 @@ OBJS2 = trans2path.o
 
 OBJS3 += rlink.o tablemakerE.o tmergeE.o
 
-all release static debug: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE} 
-memcheck memdebug tsan tcheck thrcheck: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE}
-memuse memusage memtrace: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE}
-prof profile: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE}
-nothreads: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE}
+all release static debug: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE} chmod-transgram
+memcheck memdebug tsan tcheck thrcheck: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE} chmod-transgram
+memuse memusage memtrace: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE} chmod-transgram
+prof profile: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE} chmod-transgram
+nothreads: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE} chmod-transgram
 
 transgram-path-search.o : simplify-graph.h
 simplify-graph.o : simplify-graph.h
@@ -197,6 +197,9 @@ transgram-filter${EXE}: transgram-filter.o
 	${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 	@echo
 	${DBG_WARN}
+chmod-transgram:
+	chmod +x TransGram
+	chmod +x QA/train/train_model
 #test demo tests: transgram-graph${EXE}
 #	@./run_tests.sh
 
