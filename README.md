@@ -47,7 +47,7 @@ Prerequisites
 # 2. Usage 
 
 
-TransGram-v.0.0 usage:
+TransGram-v.1.0 usage:
 
 * Required *
 
@@ -57,7 +57,7 @@ For training a customized model, please refer to the [customized model][customiz
 
 ---------------------------------------------------------------------------
 
-* Options *
+** Options **
 
     --help/-h			: Output TransGram Help Information
 
@@ -85,7 +85,7 @@ For training a customized model, please refer to the [customized model][customiz
 
 ---------------------------------------------------------------------------
 
-* Typical Commands *
+** Typical Commands **
 
 A typical TransGram command for the long RNA-seq data under annotation-free mode might be:
 
@@ -113,8 +113,10 @@ Final set of single-exon transcripts reconstructed by TransGram.
 Transcript-level expression estimates for all transcripts in TransGram.gtf and TransGram-singleExon.gtf.
 
 ➡️ The above three files are recommended for downstream analysis.
+
 	•	TransGram-temp.gtf
 Initial set of all multi-exon transcripts reconstructed by TransGram (before filtering by quality score).
+
 	•	TransGram.score
 Machine learning–based quality scores corresponding to the transcripts in TransGram-temp.gtf.
 
