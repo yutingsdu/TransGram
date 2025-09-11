@@ -17,7 +17,7 @@ Prerequisites
 
 	•	g++ with C++11 support (e.g., version 9.4.0)
 	
-	•	XGBoost — please ensure that [XGBoost][XGboost] is properly installed
+	•	XGBoost — please ensure that [XGBoost][XGBoost] is properly installed
 
   
 # 1. Installing and test
@@ -142,6 +142,6 @@ Contact:<br>
 Any questions, problems, bugs are welcome and should be dumped to Ting Yu <yutingsdu@163.com> <br>
 Updated on Dec 13, 2024. <br>
 
-[XGboost]: https://github.com/dmlc/xgboost
+[XGBoost]: https://github.com/dmlc/xgboost
 [training]: https://github.com/yutingsdu/TransGram/tree/main/xgboost_predict/train
 [customized model]:https://github.com/yutingsdu/TransGram?tab=readme-ov-file#3-running-transgram-with-a--customized-model
