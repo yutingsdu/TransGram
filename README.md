@@ -103,8 +103,7 @@ Perform quality assessment on your transcripts (my-transcript.gtf) using TransGr
 
 # 3. Output Description 
 
-TransGram generates the following files:
-After transcriptome reconstruction, TransGram generates the following files:
+In transcriptome reconstruction mode, after processing the input data, TransGram generates the following files:
 
 	•	TransGram.gtf
 Final set of multi-exon transcripts reconstructed by TransGram, filtered by quality score.
