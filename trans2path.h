@@ -201,6 +201,10 @@ public:
    string strand, chr;
 
    vector< pair<int,int> > nodes,edges;
+
+   vector<path_t> raw_read_paths;
+   vector<path_t> raw_read_paths_remove_end_partial;
+   vector<double> raw_read_paths_cov;
    vector<path_t> right_paths;
    vector<string> right_paths_ids;
    vector<path_t> right_paths_remove_end_partial; 
@@ -236,6 +240,7 @@ public:
   void get_reserved_junc(vector<path_t> PairPath);
   void get_CovInfo();
   void add_source_and_sink();
+  void get_raw_align_info();
   void get_graph_info();
   void build_node_set_and_simplify(vector<int>& exon_l, vector<int>& exon_r, vector<double>& exon_cov,
 		      vector<node_idx_t>& ,vector<node_idx_t>&, vector<double>&, 

@@ -143,27 +143,42 @@ endif
 %.o : %.cpp
 	${CXX} ${CXXFLAGS} -c $< -o $@
 
-OBJS += rlink.o tablemaker.o tmerge.o common.o
+OBJS3 := $(OBJS)
+OBJS += build_graph.o tablemaker.o tmerge.o common.o
+
 OBJS1 = simplify-graph.o
 OBJS2 = trans2path.o
 
-all release static debug: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE}
-memcheck memdebug tsan tcheck thrcheck: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE}
-memuse memusage memtrace: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE}
-prof profile: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE}
-nothreads: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE}
+OBJS3 += rlink.o tablemakerE.o tmergeE.o
+
+all release static debug: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE} 
+memcheck memdebug tsan tcheck thrcheck: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE}
+memuse memusage memtrace: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE}
+prof profile: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE}
+nothreads: transgram-graph${EXE} transgram-path-search${EXE} transgram-trans2pathsinfo${EXE} transgram-filter${EXE} transgram-expression${EXE}
 
 transgram-path-search.o : simplify-graph.h
 simplify-graph.o : simplify-graph.h
 
 transgram-graph.o : $(GDIR)/GBitVec.h $(GDIR)/GHashMap.hh $(GDIR)/GBam.h
-rlink.o : rlink.h tablemaker.h $(GDIR)/GBam.h $(GDIR)/GBitVec.h
-tmerge.o : rlink.h tmerge.h
-tablemaker.o : tablemaker.h rlink.h
+build_graph.o : build_graph.h tablemaker.h $(GDIR)/GBam.h $(GDIR)/GBitVec.h
+tmerge.o : build_graph.h tmerge.h 
+tablemaker.o : tablemaker.h build_graph.h
 common.o : common.h
+
+transgram-expression.o : $(GDIR)/GBitVec.h $(GDIR)/GHashMap.hh $(GDIR)/GBam.h
+rlink.o : rlink.h tablemakerE.h $(GDIR)/GBam.h $(GDIR)/GBitVec.h
+tmergeE.o : rlink.h tmergeE.h
+tablemakerE.o : tablemakerE.h rlink.h
+
 ${BAM}/libbam.a: 
 	cd ${BAM} && make lib
 transgram-graph${EXE}: ${BAM}/libbam.a $(OBJS) transgram-graph.o
+	${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
+	@echo
+	${DBG_WARN}
+
+transgram-expression${EXE}: ${BAM}/libbam.a $(OBJS3) transgram-expression.o
 	${LINKER} ${LDFLAGS} -o $@ ${filter-out %.a %.so, $^} ${LIBS}
 	@echo
 	${DBG_WARN}
@@ -233,10 +248,12 @@ clean:
 	${RM} transgram-graph${EXE} transgram-path-search${EXE} transgram-graph.o*  transgram-path-search.o $(OBJS) $(OBJS1) $(OBJS2)
 	${RM} transgram-trans2pathsinfo${EXE} transgram-trans2pathsinfo.o 
 	${RM} transgram-filter${EXE} transgram-filter.o
-	${RM} core.*
+	${RM} transgram-expression${EXE} transgram-expression.o
+	${RM} core.* rlink.o tablemakerE.o tmergeE.o trans2path.o
 allclean cleanAll cleanall:
 	cd ${BAM} && make clean
 	${RM} transgram-graph${EXE} transgram-path-search${EXE} transgram-graph.o* transgram-path-search.o $(OBJS) $(OBJS1)
 	${RM} transgram-trans2pathsinfo${EXE} transgram-trans2pathsinfo.o
 	${RM} transgram-filter${EXE} transgram-filter.o
-	${RM} core.*
+	${RM} transgram-expression${EXE} transgram-expression.o
+	${RM} core.* rlink.o tablemakerE.o tmergeE.o trans2path.o

@@ -1,20 +1,22 @@
 //#define GFF_DEBUG 1 //debugging guides loading
-#include <iostream>
-#include <fstream>
-#include "build_graph.h"
+#include "rlink.h"
+//#include "tmergeE.h"
 #include "tmerge.h"
-//#define NOTHREADS=0 //yuting New LR
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <string>
 #ifndef NOTHREADS
 #include "GThreads.h"
 #endif
-
+using namespace std;
 //#define GMEMTRACE 1  //debugging mem allocation
 
 #ifdef GMEMTRACE
 #include "proc_mem.h"
 #endif
 
-#define VERSION "2.1.7"
+#define VERSION "0.0.0"
 
 //#define DEBUGPRINT 1
 
@@ -31,19 +33,20 @@
 #define DBGPRINT4(a,b,c,d)
 #define DBGPRINT5(a,b,c,d,e)
 #endif
-#define USAGE "./NewAssembler file.bam -L -o output_dir"
+
+#define USAGE "TransGram v" VERSION " usage:\n\n\
+"
+/*
+*/
 //---- globals
 
-std::ofstream out;
-std::ofstream out_RL;//output read length
-std::ofstream out_raw;
 FILE* f_out=NULL;
 FILE* c_out=NULL;
 //#define B_DEBUG 1
 #ifdef B_DEBUG
  FILE* dbg_out=NULL;
 #endif
-int rg_index=0;
+
 GStr outfname;
 GStr out_dir;
 GStr tmp_path;
@@ -55,7 +58,6 @@ bool trim=true;
 bool viral=false;
 bool eonly=false; // parameter -e ; for mergeMode includes estimated coverage sum in the merged transcripts
 bool longreads=false;
-bool outputReadLength=false;
 bool rawreads=false;
 bool nomulti=false;
 bool enableNames=false;
@@ -93,7 +95,7 @@ bool includesource=true;
 
 float isofrac=0.01;
 bool isunitig=true;
-GStr label("TRGR");
+GStr label("STRG");
 GStr ballgown_dir;
 
 GFastaDb* gfasta=NULL;
@@ -179,7 +181,7 @@ char* sprintTime();
 void processBundle(BundleData* bundle);
 //void processBundle1stPass(BundleData* bundle); //two-pass testing
 
-// yuting void writeUnbundledGuides(GVec<GRefData>& refdata, FILE* fout, FILE* gout=NULL);
+void writeUnbundledGuides(GVec<GRefData>& refdata, FILE* fout, FILE* gout=NULL);
 
 #ifndef NOTHREADS
 
@@ -199,29 +201,11 @@ int main(int argc, char* argv[]) {
  // == Process arguments.
  GArgs args(argc, argv,
    "debug;help;version;viral;conservative;mix;cds=;keeptmp;rseq=;ptf=;bam;fr;rf;merge;"
-   "exclude=zihvteuLORx:n:j:s:D:G:C:S:l:m:o:a:j:c:f:p:g:P:M:Bb:A:E:F:T:");
- //args.printError(USAGE, true);
+   "exclude=zihvteuLRx:n:j:s:D:G:C:S:l:m:o:a:j:c:f:p:g:P:M:Bb:A:E:F:T:");
+ args.printError(USAGE, true);
 
  processOptions(args);
- if(!longreads)
- {
-   outfname=out_dir+"/transgram.reads.raw.align";
-   f_out=fopen(outfname.chars(), "w");
- }
- if(longreads && outputReadLength)
- {
 
-     GStr reads_file = out_dir+"/transgram.reads.length";
-     out_RL.open(reads_file.chars());
- }
- GStr graph_file = out_dir+"/transgram.graph";
- out.open(graph_file.chars());
-
- //GStr rawreads_file = out_dir+"/transgram.reads.raw.align";
- //out_raw.open(rawreads_file.chars());
-
-
- //return 0;
  GVec<GRefData> refguides; // plain vector with transcripts for each chromosome
 
  GArray<GRefPtData> refpts(true, true); // sorted,unique array of refseq point-features data
@@ -416,29 +400,6 @@ if (ballgown)
 	 bool new_bundle=false;
 	 //delete brec;
 	 if ((brec=bamreader.next())!=NULL) {
-
-		 //features used for visualization(zitong)
-		 if(longreads && outputReadLength)
-		 {
-			 if(!brec->isUnmapped() && brec->isPrimary() && !brec->isSupplementary()) //mapped and primary and not suppl
-			 {
-			     char* seq = brec->sequence();
-			     int L = strlen(seq);
-			     out_RL<<L<<" "<<brec->mapped_len<<'\n';
-			     free(seq);
-			 }
-			 if(brec->isUnmapped())
-			 {
-			     char* seq = brec->sequence();
-			     int L = strlen(seq);
-			     out_RL<<L<<" "<<0<<'\n';
-			     free(seq);
-			 }
-			 //int L = brec->sequence().size();
-			 //out_RL<<L<<'\n';
-			 //out_RL<<brec->sequence()<<'\n';
-		 }
-		 
 		 if (brec->isUnmapped()) continue;
 		 if (brec->start<1 || brec->mapped_len<10) {
 			 if (verbose) GMessage("Warning: invalid mapping found for read %s (position=%d, mapped length=%d)\n",
@@ -477,9 +438,13 @@ if (ballgown)
 		 if (chr_changed) {
 			 skipGseq=excludeGseqs.hasKey(refseqName);
 			 gseq_id=gseqNames->gseqs.addName(refseqName);
-			 if (guided) 
-			 {
-			      //
+			 if (guided) {
+				 if (gseq_id>=refseqCount) {
+					 if (verbose)
+						 GMessage("WARNING: no reference transcripts found for genomic sequence \"%s\"! (mismatched reference names?)\n",
+								refseqName);
+				 }
+				 else no_ref_used=false;
 			 }
 
 			 if (alncounts.Count()<=gseq_id) {
@@ -498,9 +463,21 @@ if (ballgown)
 		 nh=brec->tag_int("NH");
 		 if (nh==0) nh=1;
 		 hi=brec->tag_int("HI");
-		 if (mergeMode) 
-		 {
-		    //
+		 if (mergeMode) {
+		    //tinfo=new TAlnInfo(brec->name(), brec->tag_int("ZF"));
+			 tinfo=new TAlnInfo(brec->name(), brec->uval);
+		    GStr score(brec->tag_str("ZS"));
+		    if (!score.is_empty()) {
+		      GStr srest=score.split('|');
+		      if (!score.is_empty())
+		         tinfo->cov=score.asDouble();
+		      score=srest.split('|');
+		      if (!srest.is_empty())
+		    	 tinfo->fpkm=srest.asDouble();
+		      srest=score.split('|');
+		      if (!score.is_empty())
+		         tinfo->tpm=score.asDouble();
+		    }
 		 }
 
 		 if (!chr_changed && currentend>0 && pos>currentend+(int)runoffdist) {
@@ -512,9 +489,7 @@ if (ballgown)
 		 new_bundle=true; //fake a new start (end of last bundle)
 	 }
 
-	 if (new_bundle || chr_changed) 
-	 {
-		 //cerr<<endl<<".....New bundle......"<<endl;//yuting New LR
+	 if (new_bundle || chr_changed) {
 		 hashread.Clear();
 		 if (bundle->readlist.Count()>0) { // process reads in previous bundle
 			// (readthr, junctionthr, mintranscriptlen are globals)
@@ -536,7 +511,6 @@ if (ballgown)
 				bundle->gseq=faseq->copyRange(bundle->start, bundle->end, false, true);
 			}
 #ifndef NOTHREADS
-			
 			//push this in the bundle queue where it'll be picked up by the threads
 			DBGPRINT2("##> Locking queueMutex to push loaded bundle into the queue (bundle.start=%d)\n", bundle->start);
 			int qCount=0;
@@ -567,12 +541,10 @@ if (ballgown)
 				DBGPRINT("##> queueMutex locked again within while loop\n");
 			}
 			queueMutex.unlock();
-			
 
 #else //no threads
 			//Num_Fragments+=bundle->num_fragments;
 			//Frag_Len+=bundle->frag_len;
-			cerr<<"process bundle here..."<<endl;
 			processBundle(bundle);
 #endif
 			// ncluster++; used it for debug purposes only
@@ -643,14 +615,50 @@ if (ballgown)
 #endif
 		 currentstart=pos;
 		 currentend=brec->end;
-		 if (guides) 
-		 { //guided and guides!=NULL
-			//
+		 if (guides) { //guided and guides!=NULL
+			 ng_start=ng_end+1;
+			 while (ng_start<ng && (int)(*guides)[ng_start]->end < pos) {
+				 // for now, skip guides which have no overlap with current read
+				 ng_start++;
+			 }
+			 int ng_ovl=ng_start;
+			 //add all guides overlapping the current read and other guides that overlap them
+			 while (ng_ovl<ng && (int)(*guides)[ng_ovl]->start<=currentend) { //while guide overlap
+				 if (currentstart>(int)(*guides)[ng_ovl]->start)
+					 currentstart=(*guides)[ng_ovl]->start;
+				 if (currentend<(int)(*guides)[ng_ovl]->end)
+					 currentend=(*guides)[ng_ovl]->end;
+				 if (ng_ovl==ng_start && ng_ovl>0) { //first time only, we have to check back all possible transitive guide overlaps
+					 //char* geneid=(*guides)[ng_ovlstart]->getGeneID();
+					 //if (geneid==NULL) geneid=(*guides)[ng_ovlstart]->getGeneName();
+					 //if (geneid && !bgeneids.hasKey(geneid))
+					 //  bgeneids.shkAdd(geneid, &ng); //whatever pointer to int
+					 int g_back=ng_ovl; //start from the overlapping guide, going backwards
+					 int g_ovl_start=ng_ovl;
+					 while (g_back>ng_end+1) {
+						 --g_back;
+						 //if overlap, set g_back_start=g_back and update currentstart
+						 if (currentstart<=(int)(*guides)[g_back]->end) {
+							 g_ovl_start=g_back;
+							 if (currentstart>(int)(*guides)[g_back]->start)
+								  currentstart=(int)(*guides)[g_back]->start;
+						 }
+					 } //while checking previous guides that could be pulled in this bundle
+					 for (int gb=g_ovl_start;gb<=ng_ovl;++gb) {
+						 bundle->keepGuide((*guides)[gb],
+								   &guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
+					 }
+				 } //needed to check previous guides for overlaps
+				 else
+				    bundle->keepGuide((*guides)[ng_ovl],
+						   &guides_RC_tdata, &guides_RC_exons, &guides_RC_introns);
+				 ng_ovl++;
+			 } //while guide overlap
+			 ng_end=ng_ovl-1; //MUST update ng_end here, even if no overlaps were found
 		 } //guides present on the current chromosome
 		bundle->refseq=lastref;
 		bundle->start=currentstart;
 		bundle->end=currentend;
-		//cerr<<"-------Finish processing bunddle-----"<<endl;
 	 } //<---- new bundle started
 
 	 if (currentend<(int)brec->end) {
@@ -721,8 +729,8 @@ if (ballgown)
 #ifdef B_DEBUG
  fclose(dbg_out);
 #endif
-// if (mergeMode && guided )
-//	 writeUnbundledGuides(refguides, f_out);
+ if (mergeMode && guided )
+	 writeUnbundledGuides(refguides, f_out);
 
 
  // clear refpts data, if loaded
@@ -731,14 +739,13 @@ if (ballgown)
 		  refpts[i].pfs.setFreeItem(true);
 	  }
 
- if(!longreads) fclose(f_out);
+ fclose(f_out);
  if (c_out && c_out!=stdout) fclose(c_out);
 
  if(verbose && no_xs>0)
 	 GMessage("Number spliced alignments missing the XS tag (skipped): %d\n",no_xs);
 
-if(0 && !mergeMode) { //yuting New LR
-	//yuting final output
+if(!mergeMode) {
 	if(verbose) {
 		GMessage("Total count of aligned fragments: %g\n", Num_Fragments);
 		if (Num_Fragments)
@@ -746,15 +753,20 @@ if(0 && !mergeMode) { //yuting New LR
 	}
 
 	f_out=stdout;
-	if(outfname!="stdout") { //outfname final gtf name //yuting
+	/*yuting
+	if(outfname!="stdout") {
 		f_out=fopen(outfname.chars(), "w");
 		if (f_out==NULL) GError("Error creating output file %s\n", outfname.chars());
 	}
+	*/
+	ofstream out(outfname);
+	//fprintf(f_out,"# ");
+	//args.printCmdLine(f_out);
+	//fprintf(f_out,"# TransGram version %s\n",VERSION);
+	//fprintf(f_out,"gene_id	transcript_id	Count	FPKM	TPM\n");//yuting
+	out<<"gene_id	transcript_id	Count	FPKM	TPM"<<endl;
 
-	fprintf(f_out,"# ");
-	args.printCmdLine(f_out);
-	fprintf(f_out,"# TransGram version %s\n",VERSION);
-
+	//fprintf(stderr,"cov_sum=%g frag_len=%g num_frag=%g\n",Cov_Sum,Frag_Len,Num_Fragments);
 
 	FILE *g_out=NULL;
 	if(geneabundance) {
@@ -791,13 +803,41 @@ if(0 && !mergeMode) { //yuting New LR
 				for(int i=0;i<nl;i++) {
 					fgetline(linebuf,linebuflen,ftmp_in);
 					if(!i) {
+						string S = linebuf;
+						istringstream istr;
+						istr.str(S);
+						string temp, transID, geneID;
+						while(istr>>temp)
+						{
+						    if(temp == "gene_id") istr>>geneID;
+						    if(temp == "transcript_id") istr>>transID;
+						}
+						istr.clear();
+						geneID = geneID.substr(1,geneID.length()-3);
+						transID = transID.substr(1,transID.length()-3);
+						out<<geneID<<"	"<<transID<<"	"<<tcov<<"	"<<calc_fpkm<<"	"<<calc_tpm<<endl;
+						/*
+						fprintf(f_out,"%s     ",geneID);
+						fprintf(f_out,"%s     ",transID);
+						//fprintf(f_out,"%s	",t_id);
+						fprintf(f_out,"%.6f	",tcov);
+						fprintf(f_out,"%.6f	",calc_fpkm);
+						fprintf(f_out,"%.6f	",calc_tpm);
+						*/
+						/*yuting
 						//linebuf[strlen(line)-1]='\0';
 						fprintf(f_out,"%s",linebuf);
 						fprintf(f_out," FPKM \"%.6f\";",calc_fpkm);
 						fprintf(f_out," TPM \"%.6f\";",calc_tpm);
+						
 						fprintf(f_out,"\n");
+						*/
+
 					}
-					else fprintf(f_out,"%s\n",linebuf);
+					else {
+						//fprintf(f_out,"%s\n",linebuf);//yuting
+
+					}
 				}
 			}
 			else { // this is a gene -> different file pointer
@@ -805,11 +845,11 @@ if(0 && !mergeMode) { //yuting New LR
 				fprintf(g_out, "%s\t%.6f\t%.6f\n", linebuf, calc_fpkm, calc_tpm);
 			}
 		}
-
-		//if (guided) {
-		//	writeUnbundledGuides(refguides, f_out, g_out);
-		//}
-		fclose(f_out);
+		if (guided) {
+			writeUnbundledGuides(refguides, f_out, g_out);
+		}
+		//fclose(f_out);
+		out.close();
 		fclose(ftmp_in);
 		if(geneabundance) fclose(g_out);
 		GFREE(linebuf);
@@ -872,7 +912,6 @@ void processOptions(GArgs& args) {
 	}
 
 	 longreads=(args.getOpt('L')!=NULL);
-	 outputReadLength=(args.getOpt('O')!=NULL);
 	 if(longreads) {
 		 bundledist=0;
 		 singlethr=1.5;
@@ -1143,14 +1182,13 @@ void processOptions(GArgs& args) {
 	//deferred creation of output path
 	outfname="stdout";
 	out_dir="./";
-	//cout<<outfname<<endl; //yuting
-	 if (!tmpfname.is_empty() && tmpfname!="-") { //yuting tmpfname is from -o option!!!!!
+	 if (!tmpfname.is_empty() && tmpfname!="-") {
 		 if (tmpfname[0]=='.' && tmpfname[1]=='/')
 			 tmpfname.cut(0,2);
 		 outfname=tmpfname;
 		 int pidx=outfname.rindex('/');
 		 if (pidx>=0) {//path given
-			 out_dir=outfname.substr(0,pidx+1);
+			 out_dir=outfname.substr(0,pidx+1); //yuting:get the "out_dir"  from -o DIR/file.gtf: out_dir = DIR
 			 tmpfname=outfname.substr(pidx+1);
 		 }
 	 }
@@ -1161,7 +1199,6 @@ void processOptions(GArgs& args) {
 		tmpfname+='.';
 		tmpfname+=stime;
 	 }
-	 out_dir = outfname;
 	 if (out_dir!="./") {
 		 if (fileExists(out_dir.chars())==0) {
 			//directory does not exist, create it
@@ -1170,29 +1207,52 @@ void processOptions(GArgs& args) {
 			}
 		 }
 	 }
-	 //cout<<"after creation: "<<outfname<<endl;
-	 //cout<<"out_dir: "<<out_dir<<endl; //yuting
-	 /* yuting 
+	 if (!genefname.is_empty()) {
+		 if (genefname[0]=='.' && genefname[1]=='/')
+		 			 genefname.cut(0,2);
+	 //attempt to create the gene abundance path
+		 GStr genefdir("./");
+		 int pidx=genefname.rindex('/');
+		 if (pidx>=0) { //get the path part
+				 genefdir=genefname.substr(0,pidx+1);
+				 //genefname=genefname.substr(pidx+1);
+		 }
+		 if (genefdir!="./") {
+			 if (fileExists(genefdir.chars())==0) {
+				//directory does not exist, create it
+				if (Gmkdir(genefdir.chars()) || !fileExists(genefdir.chars())) {
+					GError("Error: cannot create directory %s!\n", genefdir.chars());
+				}
+			 }
+		 }
+
+	 }
+
 	 { //prepare temp path
 		 GStr stempl(out_dir);
-		 cout<<"a "<<stempl<<endl; // cout: ./
 		 stempl.chomp('/');
-		 cout<<"b "<<stempl<<endl; // cout: .
 		 stempl+="/tmp_XXXXXX";
-		 cout<<"c "<<stempl<<endl; // cout: ./tmp_XXXXXX
-
-		 //char* ctempl=Gstrdup(stempl.chars());
-		 const char* ctempl=outfname.text();
-		 Gmkdir(ctempl);
-	     //Gmktempdir(ctempl);
+		 char* ctempl=Gstrdup(stempl.chars());
+	     //Gmktempdir(ctempl); //yuting
 	     tmp_path=ctempl;
 	     tmp_path+='/';
-	     //GFREE(ctempl);
+	     GFREE(ctempl);
 	 }
-	 */
-	 tmpfname=out_dir+"/"+tmpfname;
-	 //cout<<tmpfname<<endl;
 
+	 //tmpfname=tmp_path+tmpfname; //yuting
+	 tmpfname=out_dir +'/'+tmpfname;//yuting
+	 if (ballgown) ballgown_dir=out_dir;
+	   else if (!ballgown_dir.is_empty()) {
+			ballgown=true;
+			ballgown_dir.chomp('/');ballgown_dir+='/';
+			if (fileExists(ballgown_dir.chars())==0) {
+				//directory does not exist, create it
+				if (Gmkdir(ballgown_dir.chars()) && !fileExists(ballgown_dir.chars())) {
+					GError("Error: cannot create directory %s!\n", ballgown_dir.chars());
+				}
+
+			}
+	   }
 #ifdef B_DEBUG
 	 GStr dbgfname(tmpfname);
 	 dbgfname+=".dbg";
@@ -1200,12 +1260,20 @@ void processOptions(GArgs& args) {
 	 if (dbg_out==NULL) GError("Error creating debug output file %s\n", dbgfname.chars());
 #endif
 
-	 {
-		 /*yuting
+	 if(mergeMode) {
+		 f_out=stdout;
+		 if(outfname!="stdout") {
+			 f_out=fopen(outfname.chars(), "w");
+			 if (f_out==NULL) GError("Error creating output file %s\n", outfname.chars());
+		 }
+		 fprintf(f_out,"# ");
+		 args.printCmdLine(f_out);
+		 fprintf(f_out,"# TransGram version %s\n",VERSION);
+	 }
+	 else {
 		 tmpfname+=".tmp";
 		 f_out=fopen(tmpfname.chars(), "w");
 		 if (f_out==NULL) GError("Error creating output file %s\n", tmpfname.chars());
-		 */
 	 }
 }
 
@@ -1294,7 +1362,7 @@ void processBundle(BundleData* bundle) {
 	}
 #endif
 
-	infer_transcripts(bundle); //yuting New LR
+	infer_transcripts(bundle);
 
 	if (ballgown && bundle->rc_data) {
 		rc_update_exons(*(bundle->rc_data));
@@ -1303,10 +1371,8 @@ void processBundle(BundleData* bundle) {
 #ifndef NOTHREADS
 		GLockGuard<GFastMutex> lock(printMutex);
 #endif
-		//yuting New LR
-		//if(mergeMode) GeneNo=printMergeResults(bundle, GeneNo,bundle->refseq);
-		//else GeneNo=printResults(bundle, GeneNo, bundle->refseq);
-		GeneNo=printResults(bundle, GeneNo, bundle->refseq); //yuting NC
+		if(mergeMode) GeneNo=printMergeResults(bundle, GeneNo,bundle->refseq);
+		else GeneNo=printResults(bundle, GeneNo, bundle->refseq);
 	}
 
 	if (bundle->num_fragments) {
@@ -1360,7 +1426,6 @@ bool noThreadsWaiting() {
 }
 
 void workerThread(GThreadData& td) {
-	//cerr<<"--workerThread--"<<endl;
 	GPVec<BundleData>* bundleQueue = (GPVec<BundleData>*)td.udata;
 	//wait for a ready bundle in the queue, until there is no hope for incoming bundles
 	DBGPRINT2("---->> Thread%d starting..\n",td.thread->get_id());
@@ -1493,6 +1558,94 @@ int loadPtFeatures(FILE* f, GArray<GRefPtData>& refpts) {
   return num;
 }
 
+void writeUnbundledGenes(GHash<CGene*>& geneabs, const char* refseq, FILE* gout) {
+				 //write unbundled genes from this chromosome
+	geneabs.startIterate();
+	while (CGene* g=geneabs.NextData()) {
+		const char* geneID=g->geneID;
+		const char* geneName=g->geneName;
+		if (geneID==NULL) geneID=".";
+		if (geneName==NULL) geneName=".";
+	    fprintf(gout, "%s\t%s\t%s\t%c\t%d\t%d\t0.0\t0.0\t0.0\n",
+	    		geneID, geneName, refseq,
+	    		g->strand, g->start, g->end);
+	}
+	geneabs.Clear();
+}
+
+void writeUnbundledGuides(GVec<GRefData>& refdata, FILE* fout, FILE* gout) {
+ for (int g=0;g<refdata.Count();++g) {
+	 GRefData& crefd=refdata[g];
+	 if (crefd.rnas.Count()==0) continue;
+	 GHash<CGene*> geneabs;
+	 //gene_id abundances (0), accumulating coords
+	 for (int m=0;m<crefd.rnas.Count();++m) {
+		 GffObj &t = *crefd.rnas[m];
+		 RC_TData &td = *(RC_TData*) (t.uptr);
+		 if (td.in_bundle) {
+			 if (gout && m==crefd.rnas.Count()-1)
+			 		writeUnbundledGenes(geneabs, crefd.gseq_name, gout);
+			 continue;
+		 }
+		 //write these guides to output
+		 //for --merge and -e
+		 if (mergeMode || eonly) {
+			  fprintf(fout, "%s\t%s\ttranscript\t%d\t%d\t.\t%c\t.\t",
+					  crefd.gseq_name, t.getTrackName(), t.start, t.end, t.strand);
+			  if (t.getGeneID())
+				  fprintf(fout, "gene_id \"%s\"; ", t.getGeneID());
+			  fprintf(fout, "transcript_id \"%s\";",t.getID());
+			  if (eonly) {
+				if (t.getGeneName())
+					  fprintf(fout, " gene_name \"%s\";", t.getGeneName());
+			    fprintf(fout, " cov \"0.0\"; FPKM \"0.0\"; TPM \"0.0\";");
+			  }
+			  else { //merge_mode
+				  if (t.getGeneName())
+					  fprintf(fout, " gene_name \"%s\";", t.getGeneName());
+				  if (t.getGeneID())
+					  fprintf(fout, " ref_gene_id \"%s\";", t.getGeneID());
+			  }
+			  fprintf(fout, "\n");
+			  for (int e=0;e<t.exons.Count();++e) {
+				  fprintf(fout,"%s\t%s\texon\t%d\t%d\t.\t%c\t.\t",
+						  crefd.gseq_name, t.getTrackName(), t.exons[e]->start, t.exons[e]->end, t.strand);
+				  if (t.getGeneID())
+					  fprintf(fout, "gene_id \"%s\"; ",  t.getGeneID());
+				  fprintf(fout,"transcript_id \"%s\"; exon_number \"%d\";",
+						  t.getID(), e+1);
+
+				  if (t.getGeneName())
+						  fprintf(fout, " gene_name \"%s\";", t.getGeneName());
+				  if (eonly) {
+					  fprintf(fout, " cov \"0.0\";");
+				  }
+				  fprintf(fout, "\n");
+			  }
+		 }
+		 if (gout!=NULL) {
+			 //gather coords for this gene_id
+			 char* geneid=t.getGeneID();
+			 if (geneid==NULL) geneid=t.getGeneName();
+			 if (geneid!=NULL) {
+				 CGene* gloc=geneabs.Find(geneid);
+				 if (gloc) {
+					 if (gloc->strand!=t.strand)
+						 GMessage("Warning: gene \"%s\" (on %s) has reference transcripts on both strands?\n",
+								  geneid, crefd.gseq_name);
+					 if (t.start<gloc->start) gloc->start=t.start;
+					 if (t.end>gloc->end) gloc->end=t.end;
+				 } else {
+					 //add new geneid locus
+					 geneabs.Add(geneid, new CGene(t.start, t.end, t.strand, t.getGeneID(), t.getGeneName()));
+				 }
+			 }
+			 if (m==crefd.rnas.Count()-1)
+				  writeUnbundledGenes(geneabs, crefd.gseq_name, gout);
+		 } //if geneabundance
+	 }
+ }
+}
 
 
 

@@ -1,5 +1,5 @@
 #include <iostream>
-#include "rlink.h"
+#include "build_graph.h"
 #include "tmerge.h"
 #ifndef COMMON_H
 #define COMMON_H

@@ -9,15 +9,21 @@
 #include "simplify-graph.h"
 
 using namespace std;
+bool debug = false;
 typedef vector<int> path_t;
 
 string outdir;
 
 map<string, map<pair<int,int>,bool> > Chr_Junc_map;
+
+map<string, vector<vector<int> > > Chr_RawAlign_Trans_map;
 map<string, vector<vector<int> > > Chr_Trans_map;
+map<string, vector<string> > Chr_TransIDs_map;
+map<string, vector<string> > Chr_GeneIDs_map;
 typedef map<string, map<pair<int,int>,bool> >::iterator Chr_Junc_map_iter;
 
 ofstream out_gtf;
+ofstream out_gtf_single;
 ofstream out_graph;
 ofstream out_info;
 
@@ -26,9 +32,13 @@ double AVERAGE_REMOVE_RATE = 0.001;//transgram
 double UNBALANCE_RATE = 0.03;
 double SEED_Filter = 2;//transgram
 int min_trans_length = 200;//transgram
+string annotation_file="null";//transgram
+bool guided = false;
+string prefix_name = "NULL";//transgram
 
 int rg_index = 0;
 int trans_id;
+string DT = "";
 bool GFlag_=false;//true for beta type;
 
 vector< pair<int,int> > datatype_info;//edges; edges_NotInLRP;
@@ -87,7 +97,7 @@ void get_graph_info(vector<Node> & node_set,string chr, string strand)
 */
 void load_graph_and_assemble(char* file,bool dt_data_type_flag) //dt_data_type_flag: true for determine data type
 {
-    if(!dt_data_type_flag)cerr<<"Loading graph "<<file<<endl;
+    if(debug && !dt_data_type_flag)cerr<<"Loading graph "<<file<<endl;
     ifstream in(file);
     istringstream istr;
     string s,temp;
@@ -104,7 +114,7 @@ void load_graph_and_assemble(char* file,bool dt_data_type_flag) //dt_data_type_f
     while(getline(in,s))
     {
 	I++;
-        if(I % 100000 == 0) cerr<<"Loading "<<I<<" lines"<<endl;
+        if(debug && I % 100000 == 0) cerr<<"Loading "<<I<<" lines"<<endl;
         if( s == "Edges"){ edge_flag = true; node_flag = false;pair_flag = false;continue;}
         if( s == "Nodes") { edge_flag = false; node_flag = true;pair_flag = false;continue;}
         if( s == "Pair") {edge_flag = false; node_flag = false;pair_flag = true;continue;}
@@ -239,13 +249,13 @@ void load_graph_and_assemble(char* file,bool dt_data_type_flag) //dt_data_type_f
 }
 void load_raw_reads_align(char*file)
 {
-    cerr<<"Loading raw reads..."<<endl;
+    if(debug) cerr<<"Loading raw reads..."<<endl;
     ifstream in(file);
     istringstream istr;
     string s;
 
     //vector<int> vecExon;
-
+    int gene_index=0,tr_index=0;
     while(getline(in,s))
     {
         istr.str(s);
@@ -256,6 +266,7 @@ void load_raw_reads_align(char*file)
 	istr>>temp>>chr>>strand>>cov>>temp;
 	while(istr>>exon_bd) vecExon.push_back(exon_bd);
 	istr.clear();
+	string CHR = chr;
 	chr+=strand;
 	if(1)
 	{
@@ -283,36 +294,63 @@ void load_raw_reads_align(char*file)
                 }
             }
 
-	    if(Chr_Trans_map.find(chr) == Chr_Trans_map.end())
+	    if(Chr_RawAlign_Trans_map.find(chr) == Chr_RawAlign_Trans_map.end())
             {
                    vector<vector<int> > vec(1,vecExon);
-                   Chr_Trans_map[chr] = vec;
+                   Chr_RawAlign_Trans_map[chr] = vec;
             }
-            else Chr_Trans_map[chr].push_back(vecExon);
+            else Chr_RawAlign_Trans_map[chr].push_back(vecExon);
+
+	    if(vecExon.size() == 2 && cov>5)
+	    {
+	        out_gtf_single<<CHR<<"	"<<"TRANSGRAM"<<"	"
+                  <<"transcript"<<"	"<<vecExon.front()<<"	"<<vecExon.back()<<"	"
+                  <<1000<<"	"<<"."<<"	.	"
+                  <<"gene_id "<<"\""<<CHR<<".single."<<gene_index<<"\""<<"; "
+                  <<"transcript_id "<<"\""<<CHR<<".single."<<gene_index<<"."<<tr_index<<"\""<<"; "<<endl;
+	        out_gtf_single<<CHR<<"	"<<"TRANSGRAM"<<"	"
+                  <<"exon"<<"	"<<vecExon.front()<<"	"<<vecExon.back()<<"	"
+                  <<1000<<"	"<<"."<<"	.	"
+                  <<"gene_id "<<"\""<<CHR<<".single."<<gene_index<<"\""<<"; "
+                  <<"transcript_id "<<"\""<<CHR<<".single."<<gene_index<<"."<<tr_index<<"\""<<"; "
+		  <<"exon_number "<<"\""<<1<<"\""<<";"<<endl;
+		gene_index++;
+		tr_index++;
+	    }
 
 	}
 
     }
     return;
 }
-void load_annotation(char* file)
+void load_annotation(const char* file)
 {
-    cerr<<"Loading annotation "<<file<<"..."<<endl;
+    if(debug) cerr<<"Loading annotation "<<file<<"..."<<endl;
     ifstream in(file);
     istringstream istr;
     string s;
 
     string chr, strand, lable;
-    string tranid;
+    string tranid,geneid;
     string temp;
     int exon_l,exon_r;
     vector<int> vecExon;
-
-    getline(in,s);
+    while(getline(in,s))
+    {
+	istringstream istr_;
+	istr_.str(s);
+        istr_>>chr>>temp>>lable;
+	if(lable != "transcript" && lable != "exon") continue;
+	break;
+    }
     istr.str(s);
 
     istr>>chr>>temp>>lable>>exon_l>>exon_r>>temp>>strand;
-    while(istr>>temp) if( temp == "transcript_id") istr>>tranid;
+    while(istr>>temp) 
+    {
+	    if(temp == "gene_id") istr>>geneid;
+	    if( temp == "transcript_id") istr>>tranid;
+    }
     if(lable == "exon"){ vecExon.push_back(exon_l); vecExon.push_back(exon_r);}
     istr.clear();
 
@@ -322,13 +360,18 @@ void load_annotation(char* file)
 	//cout<<s<<endl;
 	istr.str(s);
  	string current_id;
+	string current_geneid;
 	string curr_chr, curr_strand;
 	int curr_el, curr_er;
 
 	istr>>curr_chr>>temp>>lable>>curr_el>>curr_er>>temp>>curr_strand;
 	if(lable != "exon") continue;
 
-	while(istr>>temp) if( temp == "transcript_id") istr>>current_id;
+	while(istr>>temp)
+	{
+		if(temp == "gene_id") istr>>geneid;
+	       	if( temp == "transcript_id") istr>>current_id;
+	}
 	istr.clear();
 	if(current_id == tranid)//commom transcript
 	{
@@ -384,13 +427,25 @@ void load_annotation(char* file)
 		   //cout<<"HHH: "<<vecExon.size()<<endl;
 		   vector<vector<int> > vec(1,vecExon);
 		   Chr_Trans_map[chr] = vec;
+
+		   vector<string> vec_(1,tranid);
+		   Chr_TransIDs_map[chr]=vec_;
+
+		   vector<string> vec_2(1,geneid);
+		   Chr_GeneIDs_map[chr]=vec_2;
 		}
-		else Chr_Trans_map[chr].push_back(vecExon);
+		else {
+			Chr_Trans_map[chr].push_back(vecExon);
+			Chr_TransIDs_map[chr].push_back(tranid);
+			Chr_GeneIDs_map[chr].push_back(geneid);
+
+		}
 	    }
 	    vecExon.clear();
 	    vecExon.push_back(curr_el); vecExon.push_back(curr_er);
 	    chr = curr_chr; strand = curr_strand;
 	    tranid = current_id;
+	    geneid = current_geneid;
 	    
 	}
     }
@@ -441,30 +496,66 @@ void load_annotation(char* file)
 void determine()
 {
   
+    /*
     int good=0, bad = 0;
     for(size_t i=0;i<datatype_info.size();i++)
     {
+	
         double ratio = 1.0*datatype_info[i].second/(1.0*datatype_info[i].first);
 	if(ratio >= 0.3) bad ++;
 	else good ++;
+	
     }
     out_info<<good<<" "<<bad<<" "<<good+bad<<endl;
     int sum = good+bad;
     if(1.0*good/(1.0*sum) > 0.9) {
-	    out_info<<"beta"<<endl;
-	    GFlag_ = true; //beta
-    
+            out_info<<"beta"<<endl;
+            GFlag_ = true; //beta
+
     }
     else{
-	    out_info<<"alpha"<<endl;
-	    GFlag_ = false;//alpha
+            out_info<<"alpha"<<endl;
+            GFlag_ = false;//alpha
     }
+
+    */
+    int NA=0,NB=0;//number of points above or below the line y=0.2x
+    double k = 5.0;
+    for(size_t i=0;i<datatype_info.size();i++)
+    {
+	int edges=datatype_info[i].first, edgesNotIn=datatype_info[i].second;
+	if(k*edgesNotIn >= edges) NA++;
+	else NB++;
+
+    }
+    double gama=1.0*NA/(1.0*NB);
+    out_info<<"N(pointsAboveLine) / N(pointsBelowLine): "<<NA<<" / "<<NB<<" "<<gama<<endl;
+
+    if(gama> 0.11 && gama < 0.13)
+    //if(1)
+    {
+        cout<<"[NOTE]: The compurted gama value ("<<gama<<") "
+	    <<"is close to the threshold (0.12) ."<<endl;
+	cout<<"        You may also consider manually choosing Alpha or Beta mode (using --specify-dataType option)"<<endl;
+    }
+
+    if(gama < 0.12)
+    {
+        out_info<<"beta"<<endl;
+	GFlag_ = true; //beta
+    }
+    else 
+    {
+         out_info<<"alpha"<<endl;
+	 GFlag_ = false;//alpha
+    }
+
 }
 char* raw_read_align_file;//generated by transgram-graph
 char* graph_file;
 string data_type;//maybe i will use it in the futrue, not NOW;
 bool Help,version_flag,onlyDataType;
-static const char* short_options = "r:g:o:hl:d:F:v";
+static const char* short_options = "r:g:o:hl:d:F:vG:p:";//RevisionNC
 static struct option long_options[] = {
     {"raw-reads",               1,  0,  'r'},
     {"graph",	                1,  0,  'g'},
@@ -473,9 +564,12 @@ static struct option long_options[] = {
     {"min-trans-length",        1,  0,  'l'},
     {"min-average-junc-ratio",  1,  0,  'd'},
     {"min-seed-coverage",       1,  0,  'F'},
+    {"annotation",       	1,  0,  'G'},
+    {"prefix",       		1,  0,  'p'},
     {"version",                 0,  0,  'v'},
     {"data-type",               1,  0,  330},
     {"only-determine-dataType", 0,  0,  340},
+    {"specify-dataType",	1,  0,  350},
     {0,0,0,0}
   };
 int parse_options(int argc, char* argv[]) {
@@ -505,6 +599,12 @@ int parse_options(int argc, char* argv[]) {
             case 'F': //"min-seed-coverage"
                 SEED_Filter = atof(optarg);//2
                 break;
+            case 'G': //"annotaion"
+                annotation_file = optarg;//empty
+                break;
+            case 'p': //"prefix"
+                prefix_name = optarg;//empty
+                break;
             case 'h':
                 Help = true;
                 break;
@@ -516,6 +616,9 @@ int parse_options(int argc, char* argv[]) {
                 break;
 	    case 340:
 		onlyDataType=true;
+		break;
+	    case 350: 
+		DT = optarg;
 		break;
             default:
                 exit(1);
@@ -540,6 +643,21 @@ int main(int argc,char* argv[])
     int parse_ret = parse_options(argc, argv);
     if (parse_ret)
       return parse_ret;
+    if(prefix_name == "NULL") prefix_name="";
+    ifstream file_anno(annotation_file.c_str());
+    if(file_anno.is_open())
+    {
+        guided = true;
+	//cout<<"[NOTE]: Annotation file exist, running in annotation-GUIDED mode"<<endl;
+	const char* AnnoFile = annotation_file.c_str();
+	load_annotation(AnnoFile);
+
+	file_anno.close();
+    }
+    else
+    {
+        //cout<<"[NOTE]: Annotation file does not exist, running in annotation-FREE mode"<<endl;
+    }
 
     //outdir = argv[3];//from -o 
 
@@ -549,20 +667,45 @@ int main(int argc,char* argv[])
     else if(datatype == "beta") GFlag_ = true;
     */
 
-    load_raw_reads_align(raw_read_align_file);
+    //load_raw_reads_align(raw_read_align_file);
     
     //dertemine data type
-    out_info.open(outdir+"/data.info");
-    out_info<<"Gene_id edgesNum edges_NotIn_LRP P-edgesNum ratio"<<endl;
+    out_info.open(outdir + "/" + prefix_name + "data.info");
+    out_info<<"Gene_id edgesNum edges_NotIn_LRP P-edgesNum ratio max_edge_cov average_edge_cov"<<endl;
     load_graph_and_assemble(graph_file,true);//only determine data type
     determine();
 
-
     if(onlyDataType) return 0;
+    out_gtf_single.open(outdir + "/" + prefix_name + "TransGram-singleExon.gtf");
+    load_raw_reads_align(raw_read_align_file);
 
+    if(DT == "alpha") {
+	    cout<<"[NOTE]: Specify data type: alpha"<<endl;
+	    GFlag_ = 0;
+	    out_info<<"Specify dataType: "<<endl;
+	    out_info<<"alpha"<<endl;
+    }
+    else if(DT == "beta") {
+	    cout<<"[NOTE]: Specify data type: beta"<<endl;
+	    GFlag_ = 1;
 
+	    out_info<<"Specify dataType: "<<endl;
+	    out_info<<"beta"<<endl;
+    }
+    else 
+    {
+	cout<<"[NOTE]: If you want to specify the datatype by yourself, please use the option --specify-dataType alpha(or beta)."<<endl
+	    <<"        Otherwise, ThransGram will determine the data type automatically."<<endl;
+	cout<<"[NOTE]: Datatype is detemined by TransGram: ";
+	if(GFlag_) cout<<"beta"<<endl;
+	else cout<<"alpha"<<endl;
+    }
+    //GFlag_ = 1;//0; //true for beta //RevisionNC
+ 
     //path search
-    out_gtf.open(outdir+"/transgram-temp.gtf");
+
+    out_gtf.open(outdir + "/" + prefix_name + "TransGram-temp.gtf");
+
     load_graph_and_assemble(graph_file,false);
 
     return 0;

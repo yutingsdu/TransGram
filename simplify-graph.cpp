@@ -12,7 +12,12 @@
 using namespace std;
 
 extern map<string, map<pair<int,int>,bool> > Chr_Junc_map;
+
+extern map<string, vector<vector<int> > > Chr_RawAlign_Trans_map;
 extern map<string, vector<vector<int> > > Chr_Trans_map;
+extern map<string, vector<string> > Chr_TransIDs_map;
+extern map<string, vector<string> > Chr_GeneIDs_map;
+
 typedef map<string, map<pair<int,int>,bool> >::iterator Chr_Junc_map_iter;
 
 extern double SampleSize;
@@ -26,10 +31,13 @@ extern ofstream out_info;
 extern ofstream out_graph;
 extern vector< pair<int,int> > datatype_info;//edges; edges_NotInLRP;
 extern bool GFlag_;
+extern bool guided;
 
 
 extern int min_trans_length;
-void SimplifyGraph::get_graph_info()
+
+
+void SimplifyGraph::get_annotation_info()
 {
     /*
     out_info<<"Edges: "<<endl;
@@ -51,8 +59,263 @@ void SimplifyGraph::get_graph_info()
     }
     */
     map<string, vector<vector<int> > >::iterator it = Chr_Trans_map.find(chr+strand);
+    map<string, vector<string> >::iterator it_ = Chr_TransIDs_map.find(chr+strand);
+    map<string, vector<string> >::iterator it_2 = Chr_GeneIDs_map.find(chr+strand);
     if(it == Chr_Trans_map.end()) return;
+
     vector< vector<int> > &Trans = it->second;
+    vector<string>& TransIDs = it_->second;
+    vector<string>& GeneIDs = it_2->second;
+
+    int gl = node_set.front().sequence.front(), gr = node_set.back().sequence.back();
+    //out_info<<"hh"<<Trans.size()<<endl;
+    for(size_t i=0;i<Trans.size();i++)
+    {
+        //out_info<<"Trans: ";
+        //for(size_t j=0;j<Trans[i].size();j++) out_info<<Trans[i][j]<<" ";
+        //out_info<<endl;
+        if( (Trans[i].front() >= gl && Trans[i].front()<=gr)
+            || (Trans[i].back() >= gl && Trans[i].back()<=gr)
+            || Trans[i].front() >= gl && Trans[i].back()<=gr
+            || Trans[i].front() <= gl && Trans[i].back() >= gr)
+        {
+	    
+            //out_info<<"Trans in graph: ";
+            //out_info<<gl<<" "<<gr<<": ";
+
+	    //get guided splice junction
+	    for(size_t j=1;j<Trans[i].size()-1;){
+		    pair<int,int> as = make_pair(Trans[i][j],Trans[i][j+1]);
+		    guided_as_map[as] = true;
+		    j+=2;
+	    }
+	    
+	    //find path for the transcript in the graph
+	    path_t p;
+	    bool flag = false;
+            for(size_t k=0;k<Trans[i].size()-1;)
+	    { 
+		
+		    node_idx_t el = Trans[i][k], er = Trans[i][k+1];
+		    //for each exon in the transcript, Do:
+		    //out_info<<" exon: "<<el<<" - "<<er<<endl;
+		    int J0 = 0;
+		    if(k == 0) //first exon
+		    {
+			//out_info<<" * k=0: "<<k<<endl;
+		        int J = -1;
+			for(size_t j=0;j<nodes.size();j++)
+			{
+			    //out_info<<" a: "<<nodes[j].second<<endl;
+			    if(nodes[j].second == er)
+			    {
+			        J = j;
+				break;
+			    }
+			}
+			//out_info<<" here:"<<J<<endl;
+			if(J == -1) break; //not good trans
+			bool partial_flag = true;//current support partial
+			if(J == 0) {
+			    p.push_back(J);
+			    flag = true;//this exon is good;
+			}
+			else if(J > 0) {
+			    for(size_t j=0;j<J;j++)
+			    {
+				//out_info<<" exon-graph: "<<nodes[j].first<<" - "<<nodes[j].second<<endl;
+			        if(nodes[j].second < el) continue;
+				if(nodes[j+1].first - nodes[j].second == 1){
+				    p.push_back(j);
+				}
+				else{
+				    p.clear();
+				    /* new ren
+				    partial_flag = false;
+				    break;
+				    */
+				}
+			    }
+			    if(partial_flag) p.push_back(J);
+			}
+			J0=J;
+			if(partial_flag) flag = true;//a good exon
+			//out_info<<" 0## "<<p.size()<<endl;
+		    }
+		    else if(flag && k < Trans[i].size()-2)
+		    {
+			//out_info<<" * k<Trans[i].size()-2: "<<k<<endl;
+		        flag = false;//I am not sure if this seg is good;
+			int J1 = -1, J2 = -1;
+			for(size_t j=J0;j<nodes.size();j++)
+			{
+			    if(nodes[j].first == el) J1 = j;
+			    if(nodes[j].second == er){
+			        J2 = j;
+				break;
+			    }
+			}
+			if(J1 == -1 || J2 == -1 || J1>J2) break;//bad exon
+			bool partial_flag = true;//current support partial
+			if( J1 == J2)
+			{
+			    p.push_back(J1);
+			    flag = true;//this exon is good;
+			}
+			else
+			{
+			     for(size_t j=J1;j<J2;j++)
+			     {
+			         if(nodes[j+1].first - nodes[j].second == 1) p.push_back(j);
+				 else{
+				     partial_flag = false; // bad exon
+				     break;
+				 }
+			     }
+			     if(partial_flag)  p.push_back(J2);
+			     
+			}
+			J0=J2;
+			if(partial_flag) flag = true;//this exon is a good
+			//out_info<<" 1## "<<p.size()<<endl;
+
+		    } else if(flag && k == Trans[i].size()-2){
+			//out_info<<" * k==last exon "<<k<<endl;
+		        flag = false;
+			int J = -1;
+			for(size_t j=J0;j<nodes.size();j++)
+			{
+			    if(nodes[j].first == el) {
+			        J = j;
+				break;
+			    }
+			}
+			if(J == -1) break;
+			bool partial_flag = true;
+			if(J == nodes.size() - 1){
+			    p.push_back(J);
+			    flag = true;
+			}
+			else
+			{
+			    int j=J;
+			    for(;j<nodes.size()-1;j++)
+			    {
+			        if(nodes[j].second >= er) break;
+				
+				if(nodes[j+1].first - nodes[j].second == 1)
+					 p.push_back(j);
+				else{//not partial
+
+				    if(nodes[j].second<er)//new ren
+				    {
+				        p.push_back(j);
+					flag = true;
+					partial_flag = false;
+				    }
+
+				    partial_flag = false; //bad exon
+				    break;
+				}
+			    }
+			    if(partial_flag) p.push_back(j);
+			}
+			if(partial_flag) flag = true;//this seg is a good seg
+			 //out_info<<" n## "<<p.size()<<endl;
+		    }
+
+		    k += 2;
+            
+            }//for(size_t k=0;k<Trans[i].size()-1;)
+	
+	    if(!flag) p.clear();
+
+	    //out_info<<"Path: ";
+	    if(p.empty()){
+		    //out_info<<"EMPTY"<<endl;
+	    }
+	    else{
+		  for(size_t i=0;i<p.size();i++) {
+			  //out_info<<p[i]<<"->";
+			  //
+		  }
+		  anno_paths.push_back(p);
+
+      	  	out_gtf<<chr<<"	"<<"TRANSGRAM"<<"	"
+	      		<<"transcript"<<"	"<<Trans[i].front()<<"	"<<Trans[i].back()<<"	"
+	      		<<1000<<"	"<<strand<<"	"
+	      		<<".	gene_id "<<GeneIDs[i]<<" "
+	      		<<"transcript_id "<<TransIDs[i]<<endl;
+
+
+      	  	for(size_t j=0;j<Trans[i].size()-1;)
+	  	{
+                  out_gtf<<chr<<"	"<<"TRANSGRAM"<<"	"
+		    	<<"exon"<<"	"<<Trans[i][j]<<"	"<<Trans[i][j+1]<<"	"
+		    	<<1000<<"	"<<strand<<"	"
+		    	<<".	gene_id "<<GeneIDs[i]<<" "
+		    	<<"transcript_id "<<TransIDs[i]<<" "
+		    	<<"exon_number "<<"\""<<j/2+1<<"\""<<";"<<endl;
+		  j=j+2;
+      	  	}
+
+	  	trans_id++;
+		  path_t pp = p;
+		  if(pp.size() >= 2 )
+		  {
+            	    for(size_t j=0;j<pp.size()-1;)
+              	    {
+                	if(partial(pp[j],pp[j+1]))
+                    	    pp.erase(pp.begin() + j);
+                	else break;
+            	    }
+            	    if(pp.size() >= 2 ) 
+		    {
+            	      for(size_t j = pp.size()-1;j>0;j--)
+            	      {
+                	if(partial(pp[j-1],pp[j]))
+                        	pp.erase(pp.begin() + j);
+                	else break;
+            	      }
+		    }
+		  }
+		  if(!pp.empty());
+		      anno_paths_remove_end_partial.push_back(pp);
+		  //final_paths.push_back(p);
+	    }
+	    //out_info<<endl;
+ 	    
+
+        }//for trans in current graph
+            
+    }//for all Trans
+}
+void SimplifyGraph::get_raw_align_info()
+{
+    /*
+    out_info<<"Edges: "<<endl;
+    int Graph_size = node_set.size();
+    for(int i=0;i<Graph_size;i++)
+    {
+        Node n = node_set[i];
+        for(size_t j=0;j<n.children.size();j++)
+        {
+            out_info<<i<<"->"<<n.children[j].first<<": "<<n.children[j].second<<endl;
+        }
+    }
+    out_info<<"Nodes: "<<endl;
+    for(int i=0;i<Graph_size;i++)
+    {
+        out_info<<i<<": "<<chr<<" "<<strand<<" "
+                 <<node_set[i].str()<<": "<<node_set[i].coverage()
+                 <<" ("<<node_set[i].JS_cov.first<<","<<node_set[i].JS_cov.second<<")"<<endl;
+    }
+    */
+    map<string, vector<vector<int> > >::iterator it = Chr_RawAlign_Trans_map.find(chr+strand);
+    if(it == Chr_RawAlign_Trans_map.end()) return;
+
+    vector< vector<int> > &Trans = it->second;
+
     int gl = node_set.front().sequence.front(), gr = node_set.back().sequence.back();
     //out_info<<"hh"<<Trans.size()<<endl;
     for(size_t i=0;i<Trans.size();i++)
@@ -254,9 +517,6 @@ void SimplifyGraph::get_graph_info()
         }//for trans in current graph
             
     }//for all Trans
-
-
-
 }
 
 bool sorter(pair<edge_t,double> p1, pair<edge_t,double>p2)
@@ -289,6 +549,15 @@ bool sorter(pair<edge_t,double> p1, pair<edge_t,double>p2)
 
 	return true;
   }
+ bool SimplifyGraph::keep_edge2(edge_t e)
+ {
+    int n1 = e.first, n2 = e.second;
+    if(node_set[n1].sequence.empty() || node_set[n2].sequence.empty()) return false;
+    pair<int,int> as = make_pair(node_set[n1].sequence.back(),node_set[n2].sequence.front());
+    if(guided_as_map.find(as) == guided_as_map.end())
+        return false;
+    return true;
+ }
   void SimplifyGraph::show_block(block_info bi)
   {
       out_info<<"Block: "<<bi.start<<"--"<<bi.end<<endl;
@@ -905,7 +1174,7 @@ return;
 				bool dt_data_type)//true for beta
   {
     SSFlag = false;//add source&sink or not
-    GFlag = GFlag_; //true for beta(sim NM_pacbio)
+    GFlag = GFlag_; //true for beta
     trans_id = 1;
     rg_index++;
     exon_number = exon_l.size();
@@ -979,8 +1248,23 @@ return;
 
     }
 
+    if(edge_out.empty())//single-exon transcripts
+    {
+        for(size_t i=0;i<node_set.size();i++)
+	{
+	    path_t p;
+	    p.push_back(i);
+	    final_paths_single_exon.push_back(p);
+	}
+    }
+
     if(SSFlag) add_source_and_sink();
-    get_graph_info();
+    if(guided && !dt_data_type)
+    {
+	get_annotation_info();
+	//return;
+    }
+    get_raw_align_info();
 
     LongReadPath = LRP;
     LongReadPath_cov = LRP_cov;
@@ -991,31 +1275,48 @@ return;
     //compute_JScov_for_AllNodes();
     //show_junction();
     //
+    if(dt_data_type) //dertimine data type here;
+    {
+	vector<edge_t> delete_edges_child,delete_edges_parent;
+	remove_intron_contamination(delete_edges_child,delete_edges_parent);
+	remove_edges_by_average_coverage(delete_edges_child,delete_edges_parent);
+	delete_children_edges(delete_edges_child);
+	delete_parents_edges(delete_edges_parent);
+	process_LRP_after_simplify_graph();
+
+        get_LRP();
+        path_search(strand,chr,true);
+        return;
+    }
     vector<edge_t> delete_edges_child,delete_edges_parent;
         //remove_partial_junction(delete_edges_child,delete_edges_parent);
-    remove_intron_contamination(delete_edges_child,delete_edges_parent);
-        //remove_partial_end_by_edge_coverage(delete_edges_child,delete_edges_parent);
-    //AVERAGE_REMOVE_RATE = 0.001;
-    remove_edges_by_average_coverage(delete_edges_child,delete_edges_parent);
+    if(GFlag) remove_intron_contamination(delete_edges_child,delete_edges_parent);
+      //remove_partial_end_by_edge_coverage(delete_edges_child,delete_edges_parent);
+    //if(!GFlag) AVERAGE_REMOVE_RATE = 0.02;
+
+    if(GFlag) remove_edges_by_average_coverage(delete_edges_child,delete_edges_parent);
     
-    //remove_lowcov_edges_of_bifurcation_nodes(delete_edges_child,delete_edges_parent);
+      //remove_lowcov_edges_of_bifurcation_nodes(delete_edges_child,delete_edges_parent);
 
     delete_children_edges(delete_edges_child);
     delete_parents_edges(delete_edges_parent);
     
     process_LRP_after_simplify_graph(); 
     
-    if(dt_data_type) //dertimine data type here;
-    {
-	get_LRP();
-	path_search(strand,chr,true);
-        return;
-    } 
     if(GFlag)
     {
 	get_LRP();
+	
+	contract_LRP();
+	
 	path_search(strand,chr,false);
+	for(size_t k=0;k<final_paths_extended.size();k++)
+	{
+	    final_paths.push_back(final_paths_extended[k]);
+	}
+	
         output(strand,chr,final_paths);
+
     }
     else //else if(1)
     {
@@ -1138,6 +1439,7 @@ return;
 	}
 	return;
 	*/
+	vector<double> LongReadPath_cov_temp = LongReadPath_cov;
 	while(1 && !LongReadPath.empty())
 	{
 	    vector<double>::iterator biggest = max_element(LongReadPath_cov.begin(), LongReadPath_cov.end());
@@ -1145,11 +1447,13 @@ return;
             path_t pp = LongReadPath[k];
 	
 	    final_paths.push_back(pp);
+	    final_paths_cov_onlyforLRP.push_back(LongReadPath_cov[k]);//forBeta
 
             if(LongReadPath_cov[k] < 2) break;
             else LongReadPath_cov[k] = 0;
 	
 	}
+	LongReadPath_cov = LongReadPath_cov_temp;
 	return;
 	for(size_t i=0;i<LongReadPath.size();i++)
 	{
@@ -1431,7 +1735,8 @@ return;
 		if(partial(p,i) && partial(i,c) && pc_cov != -1)
 		{
 		    //if( (node_set[i].coverage() < 10.0/SampleSize && node_set[i].coverage()<pc_cov) )
-		    if( node_set[i].coverage()<0.01*pc_cov) 		      
+		    //if( node_set[i].coverage()<0.01*pc_cov) 		      
+		    if( node_set[i].coverage()<0.1*pc_cov) 		      
 		    {
 			delete_edges_child.push_back(make_pair(i,c));
 			delete_edges_parent.push_back(make_pair(p,i));
@@ -1445,8 +1750,8 @@ return;
 
   void SimplifyGraph::remove_partial_end_by_edge_coverage(vector<edge_t>& delete_edges_child,vector<edge_t>& delete_edges_parent)
   {
-	double R=0.1;//1
-	size_t L = 200;
+	double R=0.5;
+	size_t L = 20;
 	for(int i=0;i<Graph_size;i++)
 	{
 	    if(node_set[i].children.size() > 1 || node_set[i].parents.size() > 1)
@@ -1605,7 +1910,7 @@ return;
   void SimplifyGraph::remove_lowcov_edges_of_bifurcation_nodes(vector<edge_t>& delete_edges_child,vector<edge_t>& delete_edges_parent)
   {
     double COV1 = 3.0;
-    double R = 0.2;
+    double R = 0.05;
     double COV2 = 5.0;
     for(int i=0;i<Graph_size;i++)
     {
@@ -1626,7 +1931,7 @@ return;
 		//if(MultiJunction(i,c)) continue;
 		//if(keep_edge(make_pair(i,c))) continue;
 		double r = double(cov/max_cov);
-		if(cov < COV1 && (cov <= COV2 && r <= R)) //5,0.18
+		if(cov < COV1 || (cov <= COV2 && r <= R)) //5,0.18
 		{
 		    if(1 || node_set[c].children.empty() || node_set[c].parents.size() > 1)
 		    {
@@ -1649,7 +1954,7 @@ return;
 		//if(MultiJunction(p,i)) continue;
 		//if(keep_edge(make_pair(p,i))) continue;
 		double r = double(cov/max_cov);
-		if(cov < COV1 && (cov <= COV2 && r <= R))//5 0.18
+		if(cov < COV1 || (cov <= COV2 && r <= R))//5 0.18
 		{
 		    if(1 || node_set[p].parents.empty() || node_set[p].children.size() > 1)
 		    {
@@ -1670,7 +1975,7 @@ return;
     for(size_t i = 0;i<delete_edges_child.size();i++)
     {
 	node_idx_t n1 = delete_edges_child[i].first, n2 = delete_edges_child[i].second;
-	//if(keep_edge(make_pair(n1,n2))) continue;
+	if(keep_edge2(make_pair(n1,n2))) continue; //annotation-guided
     	if( !node_set[n1].sequence.empty() && !node_set[n2].sequence.empty() )
         {
             double cov = node_set[n1].get_child_coverage(n2);
@@ -1711,7 +2016,7 @@ return;
     for(size_t i = 0;i<delete_edges_parent.size();i++)
     {
 	node_idx_t n1 = delete_edges_parent[i].first, n2 = delete_edges_parent[i].second;
-	//if(keep_edge(make_pair(n1,n2))) continue;
+	if(keep_edge2(make_pair(n1,n2))) continue;//annotation-guided
 	if( !node_set[n1].sequence.empty() && !node_set[n2].sequence.empty() )
         {
              double cov = node_set[n1].get_child_coverage(n2);
@@ -2216,7 +2521,7 @@ return;
     vector<int> unused_junctions_sample_number;
 
     int edge_number = 0,partial_edge_number = 0,edges_Notin_LRP=0;
-
+    double max_cov = 0, ave_cov = 1;
     for(int i = 0;i< Graph_size;i++) //add source and sink
     {
 	if(SSFlag)
@@ -2237,6 +2542,8 @@ return;
 	    }
 
 	    double cov = node_set[i].children[j].second;
+	    if(cov > max_cov) max_cov = cov;
+	    ave_cov += cov;
 
 	    pair<int,int> junc_ = make_pair(i,node_set[i].children[j].first);
 	    unused_junctions.push_back(junc_);
@@ -2244,6 +2551,7 @@ return;
 	}
 
     }
+    if(edge_number >= 1) ave_cov = ave_cov/(1.0*edge_number);
     /*
     if(unused_junctions.empty())
     {
@@ -2285,13 +2593,15 @@ return;
     {
 	double flag_ratio = 1.0*edges_Notin_LRP/(1.0*edge_number);
         out_info<<"Gene_"<<rg_index<<" "<<edge_number<<" "<<edges_Notin_LRP<<" "<<partial_edge_number<<" "
-                <<1.0*edges_Notin_LRP/(1.0*edge_number)<<endl;
+                <<1.0*edges_Notin_LRP/(1.0*edge_number)<<" "
+		<<max_cov<<" "<<ave_cov
+		<<endl;
 
 	datatype_info.push_back(make_pair(edge_number, edges_Notin_LRP));
 
     }
 
-    while(1 && !LongReadPath_current.empty()) //pair as seed
+    while(0 && !LongReadPath_current.empty()) //pair as seed
     {
 	vector<double>::iterator biggest = max_element(LongReadPath_current_cov.begin(), LongReadPath_current_cov.end());
 	int k = biggest - LongReadPath_current_cov.begin();
@@ -2328,7 +2638,7 @@ return;
     }
     double seed_filter = SEED_Filter;
     int path_number = 0;
-    while(1 && !unused_junctions.empty())//junction as seed
+    while(!GFlag && !unused_junctions.empty())//junction as seed
     {
         vector<double>::iterator biggest = max_element(unused_junctions_cov.begin(),unused_junctions_cov.end());
 	int k = biggest - unused_junctions_cov.begin();
@@ -2389,6 +2699,7 @@ return;
     //case 1
     for(size_t i=0;i<Paths_.size();i++)
     {
+	//if(GFlag) break;
         if(Paths_flag_[i] == 0) continue;
 	for(size_t j=0;j<Paths_.size();j++)
 	{
@@ -2452,7 +2763,7 @@ return;
     {
 	if(paths_flag[i] == 0) continue;
 
-	//if(i>=2) break;
+	//if(i>=6) break;
 	
 	
       	path_t p = paths[i];
@@ -2494,14 +2805,22 @@ return;
 
 	  remove_partial_end_for_a_path(pp);
 
-	  if(!pp.empty() && 
-	     find(right_paths_remove_end_partial.begin(),right_paths_remove_end_partial.end(),pp) != right_paths_remove_end_partial.end())
-	  {
+	  if(!pp.empty() && (
+	        find(right_paths_remove_end_partial.begin(),right_paths_remove_end_partial.end(),pp) != right_paths_remove_end_partial.end()) 
+	    )
 		  flag_ = "yP";
-	  }
+	  else if((GFlag && i<final_paths_cov_onlyforLRP.size() && final_paths_cov_onlyforLRP[i]>1) || (length>2000))
+		  flag_ = "yP";
 	  
 	  if(GFlag && flag_ == "xP") continue;
+	  //if(GFlag  && length <= 500 && flag_ == "xP") continue;
 	  if(!GFlag && length <= 500 && flag_ == "xP") continue;
+
+	  if(!pp.empty() &&
+	 	find(anno_paths_remove_end_partial.begin(),anno_paths_remove_end_partial.end(),pp) != anno_paths_remove_end_partial.end())
+	  {
+	  	continue;
+	  }
 	  //if(GFlag && i>=2 && flag_ == "xP") continue;
 
 	  //if(flag_ == "xP") continue;
@@ -2522,8 +2841,8 @@ return;
       	  out_gtf<<chr<<"	"<<"TRANSGRAM"<<"	"
 	      	<<"transcript"<<"	"<<node_set[p.front()].sequence.front()<<"	"<<node_set[p.back()].sequence.back()<<"	"
 	      	<<1000<<"	"<<strand<<"	"
-	      	<<".	gene_id "<<"\""<<chr<<"."<<rg_index<<"\""<<"; "
-	      	<<"transcript_id "<<"\""<<chr<<"."<<rg_index<<"."<<trans_id<<"\";"<<endl;
+	      	<<".	gene_id "<<"\""<<chr<<".novel."<<rg_index<<"\""<<"; "
+	      	<<"transcript_id "<<"\""<<chr<<".novel."<<rg_index<<"."<<trans_id<<"\";"<<endl;
 
 	  //for(size_t j=0;j<p.size();j++)out_gtf<<p[j]<<" ";
 	  //out_gtf<<endl;
@@ -2533,13 +2852,36 @@ return;
              out_gtf<<chr<<"	"<<"TRANSGRAM"<<"	"
 		    <<"exon"<<"	"<<node_set[p[j]].sequence.front()<<"	"<<node_set[p[j]].sequence.back()<<"	"
 		    <<1000<<"	"<<strand<<"	"
-		    <<".	gene_id "<<"\""<<chr<<"."<<rg_index<<"\""<<"; "
-		    <<"transcript_id "<<"\""<<chr<<"."<<rg_index<<"."<<trans_id<<"\"; "
+		    <<".	gene_id "<<"\""<<chr<<".novel."<<rg_index<<"\""<<"; "
+		    <<"transcript_id "<<"\""<<chr<<".novel."<<rg_index<<"."<<trans_id<<"\"; "
 		    <<"exon_number "<<"\""<<j+1<<"\""<<";"<<endl;
       	  }
 
 	  trans_id++;
 	}
     }
+    /*
+    for(size_t i=0;i<final_paths_single_exon.size();i++)
+    {
+   	  path_t p = final_paths_single_exon[i];
+        	
+      	  out_gtf<<chr<<"	"<<"TRANSGRAM"<<"	"
+	      	<<"transcript"<<"	"<<node_set[p.front()].sequence.front()<<"	"<<node_set[p.back()].sequence.back()<<"	"
+	      	<<1000<<"	"<<"."<<"	"
+	      	<<".	gene_id "<<"\""<<chr<<".novel."<<rg_index<<"\""<<"; "
+	      	<<"transcript_id "<<"\""<<chr<<".novel."<<rg_index<<"."<<trans_id<<"\";"<<endl;
+      	  for(size_t j=0;j<p.size();j++)
+	  {
+             out_gtf<<chr<<"	"<<"TRANSGRAM"<<"	"
+		    <<"exon"<<"	"<<node_set[p[j]].sequence.front()<<"	"<<node_set[p[j]].sequence.back()<<"	"
+		    <<1000<<"	"<<"."<<"	"
+		    <<".	gene_id "<<"\""<<chr<<".novel."<<rg_index<<"\""<<"; "
+		    <<"transcript_id "<<"\""<<chr<<".novel."<<rg_index<<"."<<trans_id<<"\"; "
+		    <<"exon_number "<<"\""<<j+1<<"\""<<";"<<endl;
+      	  }
+
+	  trans_id++;
+    }
+    */
     return;
   }

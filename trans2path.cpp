@@ -11,6 +11,8 @@
 
 using namespace std;
 extern map<string, map<pair<int,int>,bool> > Chr_Junc_map;
+extern map<string, vector<vector<int> > > Chr_RawAlign_Trans_map;
+extern map<string, vector<double > > Chr_RawAlign_TransCov_map;
 extern map<string, vector<vector<int> > > Chr_Trans_map;
 extern map<string, vector<string> > Chr_TransIDs_map;
 typedef map<string, map<pair<int,int>,bool> >::iterator Chr_Junc_map_iter;
@@ -31,8 +33,242 @@ extern string out_name;
 extern ofstream out_gtf;
 extern ofstream out_info;
 extern ofstream out_graph;
+extern string DT;
 
 typedef vector<int> triple_t;
+
+void SimplifyGraph::get_raw_align_info()
+{
+    /*
+    out_info<<"Edges: "<<endl;
+    int Graph_size = node_set.size();
+    for(int i=0;i<Graph_size;i++)
+    {
+        Node n = node_set[i];
+        for(size_t j=0;j<n.children.size();j++)
+        {
+            out_info<<i<<"->"<<n.children[j].first<<": "<<n.children[j].second<<endl;
+        }
+    }
+    out_info<<"Nodes: "<<endl;
+    for(int i=0;i<Graph_size;i++)
+    {
+        out_info<<i<<": "<<chr<<" "<<strand<<" "
+                 <<node_set[i].str()<<": "<<node_set[i].coverage()
+                 <<" ("<<node_set[i].JS_cov.first<<","<<node_set[i].JS_cov.second<<")"<<endl;
+    }
+    */
+    map<string, vector<vector<int> > >::iterator it = Chr_RawAlign_Trans_map.find(chr+strand);
+    map<string, vector<double > >::iterator it2 = Chr_RawAlign_TransCov_map.find(chr+strand);
+    if(it == Chr_RawAlign_Trans_map.end()) return;
+
+    vector< vector<int> > &Trans = it->second;
+    vector< double > &TransCov = it2->second;
+
+    int gl = node_set.front().sequence.front(), gr = node_set.back().sequence.back();
+    //out_info<<"hh"<<Trans.size()<<endl;
+    for(size_t i=0;i<Trans.size();i++)
+    {
+        //out_info<<"Trans: ";
+        //for(size_t j=0;j<Trans[i].size();j++) out_info<<Trans[i][j]<<" ";
+        //out_info<<endl;
+        if( (Trans[i].front() >= gl && Trans[i].front()<=gr)
+            || (Trans[i].back() >= gl && Trans[i].back()<=gr)
+            || Trans[i].front() >= gl && Trans[i].back()<=gr
+            || Trans[i].front() <= gl && Trans[i].back() >= gr)
+        {
+	    
+            //out_info<<"Trans in graph: ";
+            //out_info<<gl<<" "<<gr<<": ";
+	    /*
+	    for(size_t j=0;j<Trans[i].size()-1;){
+		    out_info<<Trans[i][j]<<"->"<<Trans[i][j+1]<<" ";
+		    j += 2;
+	    }
+	    out_info<<endl;
+	    */
+	    //find path for the transcript in the graph
+	    path_t p;
+	    bool flag = false;
+            for(size_t k=0;k<Trans[i].size()-1;)
+	    { 
+		
+		    node_idx_t el = Trans[i][k], er = Trans[i][k+1];
+		    //for each exon in the transcript, Do:
+		    //out_info<<" exon: "<<el<<" - "<<er<<endl;
+		    int J0 = 0;
+		    if(k == 0) //first exon
+		    {
+			//out_info<<" * k=0: "<<k<<endl;
+		        int J = -1;
+			for(size_t j=0;j<nodes.size();j++)
+			{
+			    //out_info<<" a: "<<nodes[j].second<<endl;
+			    if(nodes[j].second == er)
+			    {
+			        J = j;
+				break;
+			    }
+			}
+			//out_info<<" here:"<<J<<endl;
+			if(J == -1) break; //not good trans
+			bool partial_flag = true;//current support partial
+			if(J == 0) {
+			    p.push_back(J);
+			    flag = true;//this exon is good;
+			}
+			else if(J > 0) {
+			    for(size_t j=0;j<J;j++)
+			    {
+				//out_info<<" exon-graph: "<<nodes[j].first<<" - "<<nodes[j].second<<endl;
+			        if(nodes[j].second < el) continue;
+				if(nodes[j+1].first - nodes[j].second == 1){
+				    p.push_back(j);
+				}
+				else{
+				    p.clear();
+				    /* new ren
+				    partial_flag = false;
+				    break;
+				    */
+				}
+			    }
+			    if(partial_flag) p.push_back(J);
+			}
+			J0=J;
+			if(partial_flag) flag = true;//a good exon
+			//out_info<<" 0## "<<p.size()<<endl;
+		    }
+		    else if(flag && k < Trans[i].size()-2)
+		    {
+			//out_info<<" * k<Trans[i].size()-2: "<<k<<endl;
+		        flag = false;//I am not sure if this seg is good;
+			int J1 = -1, J2 = -1;
+			for(size_t j=J0;j<nodes.size();j++)
+			{
+			    if(nodes[j].first == el) J1 = j;
+			    if(nodes[j].second == er){
+			        J2 = j;
+				break;
+			    }
+			}
+			if(J1 == -1 || J2 == -1 || J1>J2) break;//bad exon
+			bool partial_flag = true;//current support partial
+			if( J1 == J2)
+			{
+			    p.push_back(J1);
+			    flag = true;//this exon is good;
+			}
+			else
+			{
+			     for(size_t j=J1;j<J2;j++)
+			     {
+			         if(nodes[j+1].first - nodes[j].second == 1) p.push_back(j);
+				 else{
+				     partial_flag = false; // bad exon
+				     break;
+				 }
+			     }
+			     if(partial_flag)  p.push_back(J2);
+			     
+			}
+			J0=J2;
+			if(partial_flag) flag = true;//this exon is a good
+			//out_info<<" 1## "<<p.size()<<endl;
+
+		    } else if(flag && k == Trans[i].size()-2){
+			//out_info<<" * k==last exon "<<k<<endl;
+		        flag = false;
+			int J = -1;
+			for(size_t j=J0;j<nodes.size();j++)
+			{
+			    if(nodes[j].first == el) {
+			        J = j;
+				break;
+			    }
+			}
+			if(J == -1) break;
+			bool partial_flag = true;
+			if(J == nodes.size() - 1){
+			    p.push_back(J);
+			    flag = true;
+			}
+			else
+			{
+			    int j=J;
+			    for(;j<nodes.size()-1;j++)
+			    {
+			        if(nodes[j].second >= er) break;
+				
+				if(nodes[j+1].first - nodes[j].second == 1)
+					 p.push_back(j);
+				else{//not partial
+
+				    if(nodes[j].second<er)//new ren
+				    {
+				        p.push_back(j);
+					flag = true;
+					partial_flag = false;
+				    }
+
+				    partial_flag = false; //bad exon
+				    break;
+				}
+			    }
+			    if(partial_flag) p.push_back(j);
+			}
+			if(partial_flag) flag = true;//this seg is a good seg
+			 //out_info<<" n## "<<p.size()<<endl;
+		    }
+
+		    k += 2;
+            
+            }//for(size_t k=0;k<Trans[i].size()-1;)
+	
+	    if(!flag) p.clear();
+
+	    //out_info<<"Path: ";
+	    if(p.empty()){
+		    //out_info<<"EMPTY"<<endl;
+	    }
+	    else{
+		  for(size_t i=0;i<p.size();i++) {
+			  //out_info<<p[i]<<"->";
+			  //
+		  }
+		  raw_read_paths.push_back(p);
+		  path_t pp = p;
+		  if(pp.size() >= 2 )
+		  {
+            	    for(size_t j=0;j<pp.size()-1;)
+              	    {
+                	if(partial(pp[j],pp[j+1]))
+                    	    pp.erase(pp.begin() + j);
+                	else break;
+            	    }
+            	    if(pp.size() >= 2 ) 
+		    {
+            	      for(size_t j = pp.size()-1;j>0;j--)
+            	      {
+                	if(partial(pp[j-1],pp[j]))
+                        	pp.erase(pp.begin() + j);
+                	else break;
+            	      }
+		    }
+		  }
+		  if(!pp.empty());
+		      raw_read_paths_remove_end_partial.push_back(pp);
+		      raw_read_paths_cov.push_back(TransCov[i]);
+		     
+		  //final_paths.push_back(p);
+	    }
+	    //out_info<<endl;
+ 	    
+
+        }//for trans in current graph
+            
+    }//for all Trans
+}
 void SimplifyGraph::get_graph_info()
 {
     /*
@@ -1003,91 +1239,100 @@ return;
 
     if(SSFlag) add_source_and_sink();
     get_graph_info();
-    //output(strand,chr,final_paths);
-    //return;
-    {   //process LRP
-	LongReadPath = LRP;
-	LongReadPath_cov = LRP_cov;
-	contract_LRP();
-	for(size_t i=0;i<LongReadPath.size();)
-	{
-	    path_t p = LongReadPath[i];
-	    bool flag = false;
-	    int normal_number=0, partial_number=0;
-	    if(p.size() < 3) flag = true;
-	    double cov = 10000000000;
-	    for(size_t j=0;j<p.size() - 1;j++)
-	    {
-		double c_ = node_set[p[j]].get_child_coverage(p[j+1]);
-	        if(c_ == -1)
-		{
-		    //cerr<<"WARNING: "<<rg_index<<endl;
-		    //cerr<<p[j]<<" "<<p[j+1]<<endl;
-		    //cerr<<strand<<" "<<chr<<" "<<node_set[p[j]].sequence.back()<<" "<<node_set[p[j+1]].sequence.front()<<endl;
-	 	    flag = true;
-		    break;
-		}
-		else if(c_ < cov) cov = c_;
-		
-		if(partial(p[j],p[j+1])){
-		    partial_number++;
-		}
-		else normal_number++;
-		
-	    }
-	    //LongReadPath_cov[i] = cov; //New LR
-	    //if(normal_number == 0) flag = true;
-	    /*
-	    if(LongReadPath_cov[i]<R) {
-		flag = true;
-	    }
-	    */
-	    if(flag)
-	    {
-	    	LongReadPath.erase(LongReadPath.begin() + i);
-	    	LongReadPath_cov.erase(LongReadPath_cov.begin() + i);
-	    }
-	    else i++;
-	}
-    }
-    //show_graph();
-    //GetBlock();
-    //return;
+    get_raw_align_info();
 
-    //get_LRP();
-    get_reserved_junc(LRP);
+    LongReadPath = LRP;
+    LongReadPath_cov = LRP_cov;
 
-//    LongReadPath.clear();
-//    LongReadPath_cov.clear();
-    //compute_JScov_for_AllNodes();
-    //show_junction();
+
+    //process graph
     vector<edge_t> delete_edges_child,delete_edges_parent;
-//return;
-    //remove_partial_junction(delete_edges_child,delete_edges_parent);
+
     remove_intron_contamination(delete_edges_child,delete_edges_parent);
-    //remove_partial_end_by_edge_coverage(delete_edges_child,delete_edges_parent);
-    AVERAGE_REMOVE_RATE = 0.05;
-//    remove_edges_by_average_coverage(delete_edges_child,delete_edges_parent);
+    AVERAGE_REMOVE_RATE = 0.01;
+    remove_edges_by_average_coverage(delete_edges_child,delete_edges_parent);
     
-//    remove_lowcov_edges_of_bifurcation_nodes(delete_edges_child,delete_edges_parent);
 
     delete_children_edges(delete_edges_child);
     delete_parents_edges(delete_edges_parent);
 
     process_LRP_after_simplify_graph();
 
-    GetBlock();
+    get_LRP();//get long read path to get data type
 
-    //path_search(strand,chr);
-    //output(strand,chr,final_paths);
-return;
-    remove_intron_contamination(delete_edges_child,delete_edges_parent);
+    vector<pair<int,int> > unused_junctions;
+    int edge_number = 0,partial_edge_number = 0,edges_Notin_LRP=0;
+    double max_cov = 0, ave_cov = 1; 
+    for(int i = 0;i< Graph_size;i++) //add source and sink
+    {   
+        for(size_t j=0;j<node_set[i].children.size();j++)
+        {   
+            if(partial(i,node_set[i].children[j].first)){
+                    partial_edge_number++;
+                    continue;
+            }
+            edge_number++;
+            int c = node_set[i].children[j].first;
+            
+            double cov = node_set[i].children[j].second;
+            if(cov > max_cov) max_cov = cov;
+            ave_cov += cov;
+            pair<int,int> junc_ = make_pair(i,node_set[i].children[j].first);
+            unused_junctions.push_back(junc_);
+        }
+    
+    }
+    if(edge_number >= 1) ave_cov = ave_cov/(1.0*edge_number);
 
-    //remove_all_partial(delete_edges_child,delete_edges_parent);
-    remove_small_exons(delete_edges_child,delete_edges_parent);
+    map<edge_t,bool> used_edges;
+    for(size_t i=0;i<final_paths.size();i++)
+    {
+        path_t p = final_paths[i];
+        for(size_t j=0;j<p.size()-1;j++)
+        {
+            edge_t edge = make_pair(p[j],p[j+1]);
+            used_edges[edge] = true;
+        }
+    }
 
-    delete_children_edges(delete_edges_child);
-    delete_parents_edges(delete_edges_parent);
+    for(size_t i=0;i<unused_junctions.size();i++)
+    {
+        pair<int,int> junc = unused_junctions[i];
+        if(used_edges.find(junc) == used_edges.end())
+        {
+            edges_Notin_LRP++;
+        }
+    }
+    if(edge_number >=2)
+    {
+	
+        double flag_ratio = 1.0*edges_Notin_LRP/(1.0*edge_number);
+	/*
+        cout<<"Gene_"<<rg_index<<" "<<edge_number<<" "<<edges_Notin_LRP<<" "<<partial_edge_number<<" "
+                <<1.0*edges_Notin_LRP/(1.0*edge_number)<<" "
+                <<max_cov<<" "<<ave_cov
+                <<endl;*/
+		
+    }
+    double R=1.0;
+    if(DT == "alpha") R=0.0;
+    out_info<<"Assembled_Paths:"<<endl;
+    for(size_t i=0;i<right_paths.size();i++)
+    {
+        path_t p = right_paths[i];
+        remove_partial_end_for_a_path(p);//only consider intron chain
+	vector<vector<int> >::iterator it = find(raw_read_paths_remove_end_partial.begin(),raw_read_paths_remove_end_partial.end(),p);
+	double RawReadsCov = 0;
+	if(it != raw_read_paths_remove_end_partial.end())
+	{
+	    int k = it - raw_read_paths_remove_end_partial.begin();
+	    RawReadsCov = raw_read_paths_cov[k];
+	}
+        out_info<<right_paths_ids[i]<<" ";
+        for(size_t j=0;j<p.size();j++) out_info<<p[j]<<"->";
+        out_info<<" "<<R*RawReadsCov<<" "<<edges_Notin_LRP<<" "<<edge_number<<" "<<1.0*edges_Notin_LRP/(1.0*edge_number)<<endl;
+    }
+    return;
 
 
 return;
@@ -1159,6 +1404,19 @@ return;
 
     if(1)
     {
+	while(1 && !LongReadPath.empty())
+        {
+            vector<double>::iterator biggest = max_element(LongReadPath_cov.begin(), LongReadPath_cov.end());
+            int k = biggest - LongReadPath_cov.begin();
+            path_t pp = LongReadPath[k];
+
+            final_paths.push_back(pp);
+
+            if(LongReadPath_cov[k] < 2) break;
+            else LongReadPath_cov[k] = 0;
+
+        }
+	return;
 	//remove redundancy;
         for(size_t i=0;i<LongReadPath.size();i++)
 	{
@@ -1190,7 +1448,7 @@ return;
 		    LongReadPath_cov[i] = 0;
 	}
 	*/
-
+	
 	for(size_t i=0;i<LongReadPath.size();i++)
 	{
 	    if(LongReadPath_cov[i] <= 1) continue;
@@ -1457,7 +1715,7 @@ return;
 		if(partial(p,i) && partial(i,c) && pc_cov != -1)
 		{
 		    //if( (node_set[i].coverage() < 10.0/SampleSize && node_set[i].coverage()<pc_cov) )
-		    if( node_set[i].coverage()<2.0*pc_cov) 		      
+		    if( node_set[i].coverage()<0.1*pc_cov) 		      
 		    {
 			delete_edges_child.push_back(make_pair(i,c));
 			delete_edges_parent.push_back(make_pair(p,i));

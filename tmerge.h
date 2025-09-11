@@ -2,7 +2,7 @@
 #define STRINGTIE_MERGE_H_
 #include "GStr.h"
 #include "GList.hh"
-#include "rlink.h"
+#include "build_graph.h"
 extern GStr tmp_path;
 extern bool keepTempFiles;
 

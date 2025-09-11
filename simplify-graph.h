@@ -223,10 +223,14 @@ public:
    int RawSize;
    int size_;
    string strand, chr;
+   map<pair<int,int>,bool> guided_as_map;
 
    vector< pair<int,int> > nodes,edges;
    vector<path_t> right_paths;
    vector<path_t> right_paths_remove_end_partial; 
+
+   vector<path_t> anno_paths;
+   vector<path_t> anno_paths_remove_end_partial; 
 
    map<node_idx_t, node_idx_t> rawNode_eNode_map;
 
@@ -244,9 +248,12 @@ public:
    vector<path_t> LongReadPath;
    vector<double> LongReadPath_cov;
    vector<path_t> final_paths; //LRP
+   vector<double> final_paths_cov_onlyforLRP; //LRP
    vector<path_t> final_paths_extended;
    vector<path_t> final_paths_temp;
    vector<path_info> final_paths_info;
+   vector<path_t> final_paths_single_exon;
+
 
    map<pair<edge_t,edge_t>,int> packing_map;
    vector<vector<int> > nodes_of_components;
@@ -260,7 +267,8 @@ public:
   void get_reserved_junc(vector<path_t> PairPath);
   void get_CovInfo();
   void add_source_and_sink();
-  void get_graph_info();
+  void get_raw_align_info();
+  void get_annotation_info();
   void build_node_set_and_simplify(vector<int>& exon_l, vector<int>& exon_r, vector<double>& exon_cov,
 		      vector<node_idx_t>& ,vector<node_idx_t>&, vector<double>&, 
 		      vector<path_t>& LRP,vector<double> LRP_cov,
@@ -283,6 +291,7 @@ public:
   void remove_edges_basedon_JS_support();
   void remove_all_partial(vector<edge_t>& delete_edges_child,vector<edge_t>& delete_edges_parent);
   bool keep_edge(edge_t e);
+  bool keep_edge2(edge_t e);
 
 
   void remove_edges_by_average_coverage(vector<edge_t>& delete_edges_child,vector<edge_t>& delete_edges_parent);

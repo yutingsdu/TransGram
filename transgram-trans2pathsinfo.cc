@@ -8,8 +8,12 @@
 //#include "Node.h"
 #include "trans2path.h"
 using namespace std;
+bool debug = false;
 typedef vector<int> path_t;
 ofstream out_info;
+map<string, vector<vector<int> > > Chr_RawAlign_Trans_map;
+map<string, vector<double > > Chr_RawAlign_TransCov_map;
+
 map<string, map<pair<int,int>,bool> > Chr_Junc_map;
 map<string, vector<vector<int> > > Chr_Trans_map;
 map<string, vector<string> > Chr_TransIDs_map;
@@ -31,7 +35,7 @@ double SEED_Filter = 2;//1.01;
 int rg_index = 0;
 int trans_id;
 bool MyFlag=false;
-
+string DT = "beta";
 /*
 void get_graph_info(vector<Node> & node_set,string chr, string strand)
 {
@@ -86,7 +90,7 @@ void get_graph_info(vector<Node> & node_set,string chr, string strand)
 */
 void load_graph(char* file)
 {
-    cerr<<"Loading graph "<<file<<endl;
+    if(debug) cerr<<"Loading graph "<<file<<endl;
     ifstream in(file);
     istringstream istr;
     string s,temp;
@@ -103,7 +107,7 @@ void load_graph(char* file)
     while(getline(in,s))
     {
 	I++;
-        if(I % 100000 == 0) cerr<<"Loading "<<I<<" lines"<<endl;
+        if(debug && I % 100000 == 0) cerr<<"Loading "<<I<<" lines"<<endl;
         if( s == "Edges"){ edge_flag = true; node_flag = false;pair_flag = false;continue;}
         if( s == "Nodes") { edge_flag = false; node_flag = true;pair_flag = false;continue;}
         if( s == "Pair") {edge_flag = false; node_flag = false;pair_flag = true;continue;}
@@ -235,7 +239,7 @@ void load_graph(char* file)
 
 void load_annotation(char* file)
 {
-    cerr<<"Loading annotation "<<file<<"..."<<endl;
+    if(debug) cerr<<"Loading annotation "<<file<<"..."<<endl;
     ifstream in(file);
     istringstream istr;
     string s;
@@ -394,19 +398,87 @@ void load_annotation(char* file)
 }
  
 
+void load_raw_reads_align(char*file)
+{
+    if(debug) cerr<<"Loading raw reads..."<<endl;
+    ifstream in(file);
+    istringstream istr;
+    string s;
+
+    //vector<int> vecExon;
+
+    while(getline(in,s))
+    {
+        istr.str(s);
+	string temp,chr,strand;
+	double cov;
+	int exon_bd;
+	vector<int> vecExon;
+	istr>>temp>>chr>>strand>>cov>>temp;
+	while(istr>>exon_bd) vecExon.push_back(exon_bd);
+	istr.clear();
+	chr+=strand;
+	if(1)
+	{
+
+	    sort(vecExon.begin(),vecExon.end());
+	    /*
+	    if(Chr_Junc_map.find(chr) == Chr_Junc_map.end())
+            {
+                map<pair<int,int>,bool> m;
+                for(size_t i=1;i<vecExon.size()-1;)
+                {
+                    pair<int,int> junc = make_pair(vecExon[i],vecExon[i+1]);
+                    m[junc] = true;
+                    i += 2;
+                }
+                Chr_Junc_map[chr] = m;
+              } 
+	    else 
+	    {
+                for(size_t i=1;i<vecExon.size()-1;)
+                {
+                    pair<int,int> junc = make_pair(vecExon[i],vecExon[i+1]);
+                    Chr_Junc_map[chr][junc] = true;
+                    i += 2;
+                }
+            }
+	    */
+	    if(Chr_RawAlign_Trans_map.find(chr) == Chr_RawAlign_Trans_map.end())
+            {
+                   vector<vector<int> > vec(1,vecExon);
+                   Chr_RawAlign_Trans_map[chr] = vec;
+		   
+		   vector<double> vec_(1,cov);
+		   Chr_RawAlign_TransCov_map[chr] = vec_;
+            }
+            else {
+		    Chr_RawAlign_Trans_map[chr].push_back(vecExon);
+		    Chr_RawAlign_TransCov_map[chr].push_back(cov);
+	    }
+
+	}
+
+    }
+    return;
+}
 int main(int argc,char* argv[])
 {
     if(argc == 1)
     {
         cout<<"This is a program to get the path_in_the_graph for a given GTF file"<<endl;
-	cout<<"Run: ./exe assembled.gtf splicing.graph graph.info"<<endl;
+	cout<<"Run: ./exe assembled.gtf splicing.graph raw_reads.align graph.info"<<endl;
 	return 0;
     }
     //out_graph.open("A-myGraph");
     //out_gtf.open("A-myGTF");
-
-    out_info.open(argv[3]);
+    if(argc == 6) //exe assembled.gtf splicing.graph raw_reads.align graph.info datatype
+    {
+        DT = argv[5];
+    }
+    out_info.open(argv[4]);
     load_annotation(argv[1]);
+    load_raw_reads_align(argv[3]);
     load_graph(argv[2]);
 
     return 0;
