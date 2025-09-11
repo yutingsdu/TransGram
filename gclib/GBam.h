@@ -165,6 +165,9 @@ class GBamRecord: public GSeg {
  bool isUnmapped() { return ((b->core.flag & BAM_FUNMAP) != 0); }
  bool isMapped() { return ((b->core.flag & BAM_FUNMAP) == 0); }
  bool isPaired() { return ((b->core.flag & BAM_FPAIRED) != 0); }
+ bool isPrimary() {return ((b->core.flag & BAM_FSECONDARY) == 0);} //yuting
+ bool isSupplementary() {return ((b->core.flag & BAM_SUPP) != 0);} //yuting
+
  const char* name() { return bam1_qname(b); }
  int pairOrder() {
     //which read in the pair: 0 = unpaired, 1=first read, 2=second read
