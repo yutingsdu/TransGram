@@ -815,7 +815,7 @@ if(!mergeMode) {
 						istr.clear();
 						geneID = geneID.substr(1,geneID.length()-3);
 						transID = transID.substr(1,transID.length()-3);
-						out<<geneID<<"	"<<transID<<"	"<<tcov<<"	"<<calc_fpkm<<"	"<<calc_tpm<<endl;
+						out<<geneID<<"	"<<transID<<"	"<<tcov<<"	"<<calc_fpkm<<"	"<<calc_tpm<<'\n';
 						/*
 						fprintf(f_out,"%s     ",geneID);
 						fprintf(f_out,"%s     ",transID);
