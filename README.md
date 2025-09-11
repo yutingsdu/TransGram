@@ -2,7 +2,9 @@
 Description
 ================
 
-TransGram is a genome-guided transcriptome reconstruction tool designed for long RNA-seq reads. It first analyzes the data heterogeneity, classifies the input into two categories (Alpha and Beta), and then applies a tailored splice-graph-based path reconstruction strategy accordingly. In addition, a machine learning model is incorporated for quality assessment and filtering of the reconstructed transcripts.
+TransGram is a genome-guided transcriptome reconstruction tool designed for long RNA-seq reads. 
+
+It first analyzes the data heterogeneity, classifies the input into two categories (Alpha and Beta), and then applies tailored splicing graph-based path-searching strategies to reconstruct the transcript-representing paths. In addition, a machine learning model is incorporated for quality assessment and filtering of the reconstructed transcripts.
 
 TransGram supports two reconstruction modes:
 
