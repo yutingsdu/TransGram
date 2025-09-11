@@ -133,7 +133,7 @@ The following temporary files saved in the /tmp directory are intermediates crea
 
 For training a customized model, please refer to the [customized model][customized model] section.
 
-If you choose to run TransGram with a customized model for filtering the discovered transcripts, please refer to [training][training].
+
 
 ---------------------------------------------------------------------------
 
@@ -143,5 +143,4 @@ Any questions, problems, bugs are welcome and should be dumped to Ting Yu <yutin
 Updated on Dec 13, 2024. <br>
 
 [xgboost]: https://github.com/dmlc/xgboost
-[training]: https://github.com/yutingsdu/TransGram/tree/main/xgboost_predict/train
-[customized model]: https://github.com/yutingsdu/TransGram?tab=readme-ov-file#3-running-transgram-with-a--customized-model
+[customized model]: https://github.com/yutingsdu/TransGram/tree/main/QA/train
