@@ -17,7 +17,7 @@ Prerequisites
 
 	•	g++ with C++11 support (e.g., version 9.4.0)
 	
-	•	XGBoost — please ensure that [XGBoost][XGBoost] is properly installed
+	•	XGBoost — please ensure that [XGBoost][XGBoost] is properly installed.
 
   
 # 1. Installing and test
