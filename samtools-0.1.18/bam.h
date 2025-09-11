@@ -120,6 +120,7 @@ typedef struct {
 #define BAM_OFHEX          1
 #define BAM_OFSTR          2
 
+#define BAM_SUPP       2048 //yuting
 /*! @abstract defautl mask for pileup */
 #define BAM_DEF_MASK (BAM_FUNMAP | BAM_FSECONDARY | BAM_FQCFAIL | BAM_FDUP)
 
