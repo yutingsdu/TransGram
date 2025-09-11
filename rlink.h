@@ -6,7 +6,7 @@
 #include "GBam.h"
 #include "GBitVec.h"
 #include "time.h"
-#include "tablemaker.h"
+#include "tablemakerE.h"
 #include "GHashMap.hh"
 //#include "cds.h"
 

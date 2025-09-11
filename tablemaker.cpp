@@ -1,5 +1,5 @@
 //#include "tablemaker.h"
-#include "rlink.h"
+#include "build_graph.h"
 #include <numeric>
 
 extern GStr ballgown_dir;
