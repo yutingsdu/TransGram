@@ -16,7 +16,12 @@ Prerequisites
 # 1. Installing and test
 
     
-    (A) Installing XGBoost (v2.1.3), scikit-learn (v1.7.1), numpy (v1.26.4), and pandas (v2.2.2).
+    (A) Install XGBoost (v2.1.3), scikit-learn (v1.7.1), numpy (v1.26.4), and pandas (v2.2.2).
+   
+       Using pip:
+          $ pip install xgboost==2.1.3 scikit-learn==1.7.1 numpy==1.26.4 pandas==2.2.2
+       Using conda:
+          $ conda install -c conda-forge xgboost=2.1.3 scikit-learn=1.7.1 numpy=1.26.4 pandas=2.2.2
           
     (B) Download the lastest version of TransGram and make.
     
@@ -32,7 +37,7 @@ Prerequisites
         
           $ ./run_me.sh
           
-	If you get the transgram_outdir/TransGram.gtf, congrats, you succesfully installed TransGram.
+	      If the file transgram_outdir/TransGram.gtf is generated, congratulations—you have successfully installed TransGram.
       
         
 
