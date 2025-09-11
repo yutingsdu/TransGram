@@ -5,7 +5,9 @@ Description
 TransGram is a genome-guided transcriptome reconstruction tool designed for long RNA-seq reads. It first analyzes the data heterogeneity, classifies the input into two categories (Alpha and Beta), and then applies a tailored splice-graph-based path reconstruction strategy accordingly. In addition, a machine learning model is incorporated for quality assessment and filtering of the reconstructed transcripts.
 
 TransGram supports two reconstruction modes:
+
 	•	Annotation-free mode — requires only a sorted BAM file as input.
+	
 	•	Annotation-guided mode — utilizes a user-provided annotation file to assist reconstruction, requiring both a sorted BAM file and an annotation file.
 
 Prerequisites
@@ -105,12 +107,16 @@ Perform quality assessment on your transcripts (my-transcript.gtf) using TransGr
 
 TransGram generates the following files:
 After transcriptome reconstruction, TransGram generates the following files:
+
 	•	TransGram.gtf
 Final set of multi-exon transcripts reconstructed by TransGram, filtered by quality score.
+
 	•	TransGram-singleExon.gtf
 Final set of single-exon transcripts reconstructed by TransGram.
+
 	•	TransGram-Abundance.tsv
 Transcript-level expression estimates for all transcripts in TransGram.gtf and TransGram-singleExon.gtf.
+
 
 ➡️ The above three files are recommended for downstream analysis.
 
