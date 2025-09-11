@@ -144,4 +144,4 @@ Updated on Dec 13, 2024. <br>
 
 [XGBoost]: https://github.com/dmlc/xgboost
 [training]: https://github.com/yutingsdu/TransGram/tree/main/xgboost_predict/train
-[customized model]:https://github.com/yutingsdu/TransGram?tab=readme-ov-file#3-running-transgram-with-a--customized-model
+[customized model]: https://github.com/yutingsdu/TransGram?tab=readme-ov-file#3-running-transgram-with-a--customized-model
