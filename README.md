@@ -155,8 +155,8 @@ The following temporary files saved in the /tmp directory are intermediates crea
 
 Authors: Ting Yu and Zitong Ren designed and wrote TransGram.<br>
 Contact:<br>
-Any questions, problems, bugs are welcome and should be dumped to Ting Yu <yutingsdu@163.com> <br>
-Updated on Dec 13, 2024. <br>
+Any questions, problems, bugs are welcome and should be dumped to Ting Yu <yutingsdu@163.com> or Zitong Ren <renzitong66@163.com> <br>
+Updated on Sep 12, 2025. <br>
 
 [xgboost]: https://github.com/dmlc/xgboost
 [customized model]: https://github.com/yutingsdu/TransGram/tree/main/QA/train
