@@ -128,8 +128,26 @@ Machine learning–based quality scores corresponding to the transcripts in Tran
 
 The following temporary files saved in the /tmp directory are intermediates created during splice graph construction: transgram.graph, gtf2path.info, data.info, transgram.reads.raw.align, transgram.read.length.
 
+# 4. Train a new model for TransGram 
 
-# 4. Running TransGram with a customized model
+    A) Install GffCompare
+    
+    $ wget https://ccb.jhu.edu/software/stringtie/dl/gffcompare-0.12.10.Linux_x86_64.tar.gz
+    $ tar zxvf gffcompare-0.12.10.tar.gz
+    
+  Please don’t forget to set the environment variable for GffCompare. For example:
+
+    export PATH=your-path/GffCompare:$PATH
+
+  where /your-path/ is the directory where GffCompare is installed.
+
+    B) Train a new model with TransGram
+    
+     TransGram -b sample.bam -G annotations.gtf -o transgram_new_model --train
+    
+  If everything goes well, you will see a directory "transgram_new_model"
+
+# 5. Running TransGram with a customized model
 
 For training a customized model, please refer to the [customized model][customized model] section.
 
