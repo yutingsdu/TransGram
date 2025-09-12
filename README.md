@@ -145,7 +145,7 @@ The following temporary files saved in the /tmp directory are intermediates crea
     
      TransGram -b sample.bam -G annotations.gtf -o transgram_new_model --train
     
-  If everything goes well, you will see a directory "transgram_new_model"
+  If everything goes well, you will see a directory "transgram_new_model".
 
 # 5. Running TransGram with a Custom Quality Assessment Model
 
