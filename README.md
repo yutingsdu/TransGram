@@ -130,7 +130,7 @@ The following temporary files saved in the /tmp directory are intermediates crea
 
 # 4. Train a new model for TransGram 
 
-    A) Install GffCompare
+    （A) Install GffCompare
     
     $ wget https://ccb.jhu.edu/software/stringtie/dl/gffcompare-0.12.10.Linux_x86_64.tar.gz
     $ tar zxvf gffcompare-0.12.10.tar.gz
@@ -141,17 +141,15 @@ The following temporary files saved in the /tmp directory are intermediates crea
 
   where /your-path/ is the directory where GffCompare is installed.
 
-    B) Train a new model with TransGram
+    （B) Train a new model with TransGram
     
      TransGram -b sample.bam -G annotations.gtf -o transgram_new_model --train
     
   If everything goes well, you will see a directory "transgram_new_model"
 
-# 5. Running TransGram with a customized model
+# 5. Running TransGram with a Custom Quality Assessment Model
 
-For training a customized model, please refer to the [customized model][customized model] section.
-
-
+    TransGram -b alignment.bam -o transgram-outdir --CusModel transgram_new_model
 
 ---------------------------------------------------------------------------
 
