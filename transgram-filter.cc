@@ -98,16 +98,29 @@ int main(int argc,char* argv[])
 	    }
 	}
 	istr.clear();
-	id = id.substr(1,id.length() - 3);
+	id = id.substr(1,id.length() - 3);//chr21_ML143377v1_fix.novel.38623.1 an example for novel id
+	size_t first = id.find("novel");
+	size_t last = id.rfind("novel");
 
-	if(trans_count_map.find(id) == trans_count_map.end()) {
-
-		//cerr<<"WARRNING: "<<id<<endl;
-	}
-	else
+	bool novel = false;
+	if(first != std::string::npos && first == last)
 	{
-	   if(trans_count_map[id] > filter_cov)
-		   out<<s<<'\n';
+		novel = true;
+	}
+	if(novel)
+	{
+		if(trans_count_map.find(id) == trans_count_map.end()) {
+
+			//cerr<<"WARRNING: "<<id<<endl;dd
+		}
+		else 
+		{
+	   		if(trans_count_map[id] > filter_cov)
+		   		out<<s<<'\n';
+		}
+	}
+	else{
+	       	out<<s<<'\n';
 	}
 
 
