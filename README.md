@@ -5,7 +5,6 @@ Description
 TransGram is a genome-guided transcriptome reconstruction tool for long RNA-seq reads.
 
 Citation
-
 ================
 
 If you use TransGram in your research, please cite:
@@ -92,7 +91,7 @@ If you choose to run TransGram with a customized model for filteringt the discov
 ===========================================================================
 
 Docker
-
+================
 A Docker image of TransGram is available on SourceForge:  https://sourceforge.net/projects/transgram/files/Docker/ 
 
  
