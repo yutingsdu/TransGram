@@ -94,11 +94,9 @@ Docker
 ================
 A Docker image of TransGram is available on SourceForge:  https://sourceforge.net/projects/transgram/files/Docker/ 
 
- 
-Authors: Ting Yu and Zitong Ren designed and wrote TransGram.
- 
-Contact:
- 
+Authors
+================
+Ting Yu and Zitong Ren designed and wrote TransGram.
 Any questions, problems, bugs are welcome and should be dumped to Ting Yu <yutingsdu@163.com>
  
 Updated on Dec 13, 2024.
